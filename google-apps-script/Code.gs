@@ -26,13 +26,15 @@ const RP = '"Rp"#,##0;-"Rp"#,##0'
 // name: [header, ..], textCols (1-based, simpan sebagai teks agar "2026-10" tidak jadi tanggal), moneyCols
 const TABS = {
   'Ringkasan Bulanan': { h: ['Kode bulan', 'Bulan', 'Gaji dan uang masuk', 'Potongan', 'Pemasukan bersih', 'Tagihan rutin', 'Cicilan dan hutang', 'Kebutuhan pokok', 'Gaya hidup', 'Tabungan', 'Investasi', 'Uang belanja', 'Pengeluaran tercatat', 'Sisa jatah'], text: [1], money: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] },
-  'Pemasukan': { h: ['Id', 'Bulan', 'Nama', 'Jenis', 'Nominal'], text: [1, 2], money: [5] },
+  'Sumber Dana': { h: ['Id', 'Nama', 'Jenis', 'Saldo awal', 'Saldo sekarang'], text: [1], money: [4, 5] },
+  'Pindah Dana': { h: ['Id', 'Tanggal', 'Dari', 'Ke', 'Jumlah', 'Catatan'], text: [1, 2], money: [5] },
+  'Pemasukan': { h: ['Id', 'Bulan', 'Nama', 'Jenis', 'Nominal', 'Sumber dana'], text: [1, 2], money: [5] },
   'Anggaran': { h: ['Id', 'Bulan', 'Kelompok', 'Kategori', 'Jatah'], text: [1, 2], money: [5] },
-  'Catatan': { h: ['Id', 'Bulan', 'Tanggal', 'Kategori', 'Catatan', 'Nominal'], text: [1, 2, 3], money: [6] },
+  'Catatan': { h: ['Id', 'Bulan', 'Tanggal', 'Kategori', 'Catatan', 'Nominal', 'Sumber dana'], text: [1, 2, 3], money: [6] },
   'Tagihan': { h: ['Id', 'Nama', 'Jenis', 'Nominal per bulan', 'Tanggal jatuh tempo', 'Mulai', 'Sampai', 'Catatan'], text: [1, 6, 7], money: [4] },
   'Status Tagihan': { h: ['Id', 'Bulan', 'Tagihan', 'Nominal bulan itu', 'Dilewati', 'Status', 'Waktu lunas', 'Id tagihan'], text: [1, 2], money: [4] },
   'Target Tabungan': { h: ['Id', 'Nama', 'Target', 'Dana darurat'], text: [1], money: [3] },
-  'Setoran Tabungan': { h: ['Id', 'Bulan', 'Target', 'Jumlah (minus = tarik)', 'Catatan', 'Id target'], text: [1, 2], money: [4] },
+  'Setoran Tabungan': { h: ['Id', 'Bulan', 'Target', 'Jumlah (minus = tarik)', 'Catatan', 'Id target', 'Sumber dana'], text: [1, 2], money: [4] },
   'Log perubahan': { h: ['Waktu', 'Pengguna', 'Aksi', 'Tabel', 'Rincian'], text: [], money: [] },
 }
 
@@ -57,6 +59,16 @@ function tab_(ss, name) {
   def.text.forEach(function (c) { sh.getRange(1, c, sh.getMaxRows(), 1).setNumberFormat('@') })
   def.money.forEach(function (c) { sh.getRange(2, c, sh.getMaxRows() - 1, 1).setNumberFormat(RP) })
   if (def.h[0] === 'Id') sh.hideColumns(1)
+  return sh
+}
+
+// Pakai tab yang sudah ada; bila judul kolomnya berubah (versi skrip baru), rapikan ulang otomatis.
+function ensure_(ss, name) {
+  const def = TABS[name]
+  const sh = ss.getSheetByName(name)
+  if (!sh) return tab_(ss, name)
+  const cur = sh.getRange(1, 1, 1, def.h.length).getValues()[0]
+  for (let i = 0; i < def.h.length; i++) if (String(cur[i]) !== def.h[i]) return tab_(ss, name)
   return sh
 }
 
@@ -92,12 +104,12 @@ function findRow_(sh, id) {
 
 function apply_(ss, ev) {
   if (ev.op === 'log') {
-    const lg = tab_(ss, 'Log perubahan')
+    const lg = ensure_(ss, 'Log perubahan')
     lg.appendRow(ev.cells)
     return
   }
   if (!TABS[ev.tab]) throw new Error('Tab tidak dikenal: ' + ev.tab)
-  const sh = ss.getSheetByName(ev.tab) || tab_(ss, ev.tab)
+  const sh = ensure_(ss, ev.tab)
   if (ev.op === 'reset') {
     if (sh.getLastRow() > 1) sh.deleteRows(2, sh.getLastRow() - 1)
     return

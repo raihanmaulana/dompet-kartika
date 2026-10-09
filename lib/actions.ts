@@ -5,10 +5,11 @@ import { revalidatePath } from 'next/cache'
 import { isYm, ymAdd, ymLabel, ymOfDate } from './calc.ts'
 import { DEMO } from './data.ts'
 import { supabaseServer } from './supabase/server.ts'
-import { fmtRp, fullSyncEvents, logEvent, postEvents, queue, rowEvent, sheetsEnabled, summaryEvent, type SheetEvent, type Table } from './sheets.ts'
+import { fmtRp, fullSyncEvents, logEvent, pocketEvents, postEvents, queue, rowEvent, sheetsEnabled, summaryEvent, type SheetEvent, type Table } from './sheets.ts'
 
 const GRP = ['kebutuhan', 'gaya_hidup', 'tabungan', 'investasi'] as const
 const KINDS = ['tagihan', 'cicilan', 'hutang'] as const
+const POCKET_KINDS = ['bank', 'ewallet', 'tunai', 'lainnya'] as const
 
 const money = (v: FormDataEntryValue | string | number | null | undefined) => {
   const n = Number(String(v ?? '').replace(/[^\d]/g, ''))
@@ -35,6 +36,7 @@ async function mirror(c: C, items: { table: Table; id: string; key?: string }[],
     const ev: SheetEvent[] = []
     for (const it of items) ev.push(await rowEvent(c.sb, it.table, it.id, it.key))
     ev.push(...extra)
+    ev.push(...(await pocketEvents(c.sb, c.uid)))
     for (const ym of new Set(months.filter(isYm))) {
       const sm = await summaryEvent(c.sb, c.uid, ym)
       if (sm) ev.push(sm)
@@ -48,6 +50,13 @@ async function mirror(c: C, items: { table: Table; id: string; key?: string }[],
 async function prev(c: C, table: Table, id: string): Promise<Record<string, any> | null> {
   const { data } = await c.sb.from(table).select('*').eq('id', id).eq('owner_id', c.uid).maybeSingle()
   return data as Record<string, any> | null
+}
+/** Sumber dana yang dipilih di formulir; hanya diterima kalau memang milik pengguna ini. */
+async function pocketOf(c: C, raw: FormDataEntryValue | null): Promise<string | null> {
+  const id = text(raw, 40)
+  if (!id) return null
+  const { data } = await c.sb.from('pockets').select('id').eq('id', id).eq('owner_id', c.uid).maybeSingle()
+  return data ? (data.id as string) : null
 }
 async function curYm() {
   const v = (await cookies()).get('ym')?.value
@@ -97,7 +106,7 @@ export async function seedMonth(formData: FormData) {
   if (mode === 'prev') {
     const prev = ymAdd(ym, -1)
     const [inc, bud] = await Promise.all([
-      sb.from('income_items').select('label,kind,amount,sort').eq('owner_id', uid).eq('ym', prev),
+      sb.from('income_items').select('label,kind,amount,sort,pocket_id').eq('owner_id', uid).eq('ym', prev),
       sb.from('budget_items').select('grp,label,amount,sort').eq('owner_id', uid).eq('ym', prev),
     ])
     if (inc.data?.length) await sb.from('income_items').insert(inc.data.map((r) => ({ ...r, owner_id: uid, ym })))
@@ -128,7 +137,8 @@ export async function addIncome(formData: FormData) {
   const c = await me()
   if (!c) return done()
   const amount = money(formData.get('amount'))
-  const { data: row } = await c.sb.from('income_items').insert({ owner_id: c.uid, ym, label, kind, amount, sort: 99 }).select('id').single()
+  const pocket_id = await pocketOf(c, formData.get('pocket_id'))
+  const { data: row } = await c.sb.from('income_items').insert({ owner_id: c.uid, ym, label, kind, amount, sort: 99, pocket_id }).select('id').single()
   if (row) await mirror(c, [{ table: 'income_items', id: row.id }], 'Tambah', 'Pemasukan', `${ymLabel(ym)}: ${label} ${fmtRp(amount)} (${kind === 'masuk' ? 'uang masuk' : 'potongan'})`, [ym])
   done()
 }
@@ -198,9 +208,10 @@ export async function addExpense(formData: FormData) {
   const c = await me()
   if (!c) return done()
   const note = text(formData.get('note'), 120)
+  const pocket_id = await pocketOf(c, formData.get('pocket_id'))
   const { data: row } = await c.sb.from('expenses').insert({
     owner_id: c.uid, ym: spent_on.slice(0, 7), spent_on,
-    budget_item_id: item || null, note, amount,
+    budget_item_id: item || null, note, amount, pocket_id,
   }).select('id').single()
   if (row) await mirror(c, [{ table: 'expenses', id: row.id }], 'Tambah', 'Catatan', `${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [spent_on.slice(0, 7)])
   done()
@@ -374,7 +385,8 @@ export async function addDeposit(formData: FormData) {
   if (!c) return done()
   const { data: g } = await c.sb.from('goals').select('id').eq('id', goal_id).eq('owner_id', c.uid).maybeSingle()
   if (!g) return
-  const { data: row } = await c.sb.from('goal_deposits').insert({ goal_id, owner_id: c.uid, ym, amount, note: text(formData.get('note'), 80) }).select('id').single()
+  const pocket_id = await pocketOf(c, formData.get('pocket_id'))
+  const { data: row } = await c.sb.from('goal_deposits').insert({ goal_id, owner_id: c.uid, ym, amount, note: text(formData.get('note'), 80), pocket_id }).select('id').single()
   const gname = (await c.sb.from('goals').select('name').eq('id', goal_id).maybeSingle()).data?.name ?? ''
   if (row) await mirror(c, [{ table: 'goal_deposits', id: row.id }], amount < 0 ? 'Tarik' : 'Setor', 'Setoran Tabungan', `${ymLabel(ym)}: ${gname} ${fmtRp(Math.abs(amount))}`)
   done()
@@ -385,6 +397,79 @@ export async function deleteDeposit(id: string) {
   const old = await prev(c, 'goal_deposits', id)
   await c.sb.from('goal_deposits').delete().eq('id', id).eq('owner_id', c.uid)
   if (old) await mirror(c, [{ table: 'goal_deposits', id }], 'Hapus', 'Setoran Tabungan', `${ymLabel(old.ym)}: ${fmtRp(Math.abs(Number(old.amount)))}`)
+  done()
+}
+
+// ---------- Sumber dana ----------
+/** Baris yang memakai sumber dana ini (untuk menyegarkan kolom "Sumber dana" di Sheet saat diganti nama/dihapus). */
+async function linkedRows(c: C, pocketId: string) {
+  const out: { table: Table; id: string }[] = []
+  for (const t of ['income_items', 'expenses', 'goal_deposits'] as const) {
+    const { data } = await c.sb.from(t).select('id').eq('owner_id', c.uid).eq('pocket_id', pocketId).limit(400)
+    for (const r of data ?? []) out.push({ table: t, id: r.id as string })
+  }
+  return out
+}
+
+export async function addPocket(formData: FormData) {
+  const name = text(formData.get('name'), 40)
+  const kind = text(formData.get('kind'), 10)
+  if (!name || !(POCKET_KINDS as readonly string[]).includes(kind)) return
+  const c = await me()
+  if (!c) return done()
+  const opening = money(formData.get('opening_balance'))
+  const { count } = await c.sb.from('pockets').select('id', { count: 'exact', head: true }).eq('owner_id', c.uid)
+  const { data: row } = await c.sb.from('pockets').insert({ owner_id: c.uid, name, kind, opening_balance: opening, sort: count ?? 0 }).select('id').single()
+  if (row) await mirror(c, [{ table: 'pockets', id: row.id }], 'Tambah', 'Sumber Dana', `${name} (${kind}), saldo awal ${fmtRp(opening)}`)
+  done()
+}
+export async function updatePocket(id: string, field: 'name' | 'opening_balance', value: string) {
+  const c = await me()
+  if (!c) return done()
+  const patch = field === 'name' ? { name: text(value, 40) } : { opening_balance: money(value) }
+  if (field === 'name' && !patch.name) return
+  const old = await prev(c, 'pockets' as Table, id)
+  if (!old) return
+  await c.sb.from('pockets').update(patch).eq('id', id).eq('owner_id', c.uid)
+  const linked = field === 'name' ? await linkedRows(c, id) : []
+  await mirror(c, [{ table: 'pockets', id }, ...linked], 'Ubah', 'Sumber Dana', field === 'name'
+    ? `"${old.name}" → "${text(value, 40)}"` : `${old.name}: saldo awal ${fmtRp(Number(old.opening_balance))} → ${fmtRp(money(value))}`)
+  done()
+}
+export async function deletePocket(id: string) {
+  const c = await me()
+  if (!c) return done()
+  const old = await prev(c, 'pockets' as Table, id)
+  if (!old) return
+  const linked = await linkedRows(c, id)
+  const { data: tr } = await c.sb.from('pocket_transfers').select('id').eq('owner_id', c.uid).or(`from_pocket.eq.${id},to_pocket.eq.${id}`)
+  await c.sb.from('pockets').delete().eq('id', id).eq('owner_id', c.uid)
+  await mirror(c, [{ table: 'pockets', id }, ...linked, ...(tr ?? []).map((r) => ({ table: 'pocket_transfers' as Table, id: r.id as string }))], 'Hapus', 'Sumber Dana',
+    `${old.name} dihapus (catatan lama tetap ada, hanya tanpa sumber dana)`)
+  done()
+}
+export async function addTransfer(formData: FormData) {
+  const amount = money(formData.get('amount'))
+  const moved_on = text(formData.get('moved_on'), 10)
+  if (amount <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(moved_on)) return
+  const c = await me()
+  if (!c) return done()
+  const from = await pocketOf(c, formData.get('from_pocket'))
+  const to = await pocketOf(c, formData.get('to_pocket'))
+  if (!from || !to || from === to) return
+  const { data: row } = await c.sb.from('pocket_transfers').insert({ owner_id: c.uid, from_pocket: from, to_pocket: to, amount, moved_on, note: text(formData.get('note'), 80) }).select('id').single()
+  if (row) {
+    const names = await Promise.all([from, to].map(async (i) => ((await c.sb.from('pockets').select('name').eq('id', i).maybeSingle()).data?.name as string) ?? ''))
+    await mirror(c, [{ table: 'pocket_transfers', id: row.id }], 'Pindah dana', 'Pindah Dana', `${moved_on}: ${names[0]} → ${names[1]} ${fmtRp(amount)}`)
+  }
+  done()
+}
+export async function deleteTransfer(id: string) {
+  const c = await me()
+  if (!c) return done()
+  const old = await prev(c, 'pocket_transfers' as Table, id)
+  await c.sb.from('pocket_transfers').delete().eq('id', id).eq('owner_id', c.uid)
+  if (old) await mirror(c, [{ table: 'pocket_transfers', id }], 'Hapus', 'Pindah Dana', `${old.moved_on}: pindah dana ${fmtRp(Number(old.amount))} dibatalkan`)
   done()
 }
 

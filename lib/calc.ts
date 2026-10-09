@@ -1,4 +1,4 @@
-import type { Bill, BillMonth, BudgetItem, Expense, Grp, IncomeItem } from './types.ts'
+import type { Bill, BillMonth, BudgetItem, Expense, Grp, IncomeItem, Pocket, PocketView, Transfer } from './types.ts'
 
 const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
 
@@ -181,4 +181,27 @@ export function goalPlan(goal: { name: string; is_emergency: boolean }, tabungan
   if (!plan) plan = hit((l) => l.includes(g) || (l.length > 2 && g.includes(l)))
   if (!plan && goal.is_emergency) plan = hit((l) => l.includes('darurat'))
   return plan
+}
+
+
+/**
+ * Saldo tiap sumber dana (sampai hari ini):
+ * saldo awal + uang masuk − potongan − pengeluaran − setoran tabungan (tarik = menambah) + pindah masuk − pindah keluar.
+ * Hanya catatan yang punya sumber dana yang dihitung.
+ */
+export function pocketBalances(
+  pockets: Pocket[],
+  income: { ym: string; kind: 'masuk' | 'potong'; amount: number; pocket_id?: string | null }[],
+  expenses: { spent_on: string; amount: number; pocket_id?: string | null }[],
+  deposits: { ym: string; amount: number; pocket_id?: string | null }[],
+  transfers: Transfer[],
+  today: { ym: string; iso: string },
+): PocketView[] {
+  const bal = new Map<string, number>(pockets.map((p) => [p.id, p.opening_balance]))
+  const add = (id: string | null | undefined, n: number) => { if (id && bal.has(id)) bal.set(id, bal.get(id)! + n) }
+  for (const i of income) if (i.ym <= today.ym) add(i.pocket_id, i.kind === 'masuk' ? i.amount : -i.amount)
+  for (const e of expenses) if (e.spent_on <= today.iso) add(e.pocket_id, -e.amount)
+  for (const d of deposits) if (d.ym <= today.ym) add(d.pocket_id, -d.amount)
+  for (const t of transfers) if (t.moved_on <= today.iso) { add(t.from_pocket, -t.amount); add(t.to_pocket, t.amount) }
+  return pockets.map((p) => ({ ...p, saldo: bal.get(p.id) ?? 0 }))
 }

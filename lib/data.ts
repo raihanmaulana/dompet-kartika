@@ -1,10 +1,11 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { cache } from 'react'
-import { isYm, ymOfDate } from './calc.ts'
+import { isYm, pocketBalances, ymOfDate } from './calc.ts'
+import { queryPockets } from './pockets.ts'
 import { supabaseServer } from './supabase/server.ts'
 import * as demo from './demo.ts'
-import type { Bill, BillMonth, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData } from './types.ts'
+import type { Bill, BillMonth, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, MonthData, PocketView, Transfer } from './types.ts'
 
 export const DEMO = process.env.DEMO_MODE === '1'
 
@@ -111,6 +112,15 @@ export async function loadGoals(ctx: Ctx): Promise<{ goals: Goal[]; deposits: Go
     goals: (g.data ?? []).map((r) => ({ ...r, target: num(r.target) })) as Goal[],
     deposits: (d.data ?? []).map((r) => ({ ...r, amount: num(r.amount) })) as GoalDeposit[],
   }
+}
+
+/** Sumber dana beserta saldo (dihitung dari semua catatan yang memilih sumber itu) dan riwayat pindah dana. */
+export async function loadPockets(ctx: Ctx): Promise<{ pockets: PocketView[]; transfers: Transfer[] }> {
+  if (DEMO) {
+    const transfers = demo.demoTransfers
+    return { pockets: pocketBalances(demo.demoPockets, demo.demoIncome('2026-10'), demo.demoExpenses('2026-10'), demo.demoDeposits, transfers, ctx.today), transfers }
+  }
+  return queryPockets(await supabaseServer(), ctx.ownerId, ctx.today)
 }
 
 export async function loadViewers(): Promise<string[]> {

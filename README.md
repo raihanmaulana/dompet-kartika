@@ -31,6 +31,12 @@ Stack: Next.js 15 (App Router) · Supabase (Auth + Postgres + Row Level Security
 - Tagihan/hutang dibuat sekali dengan bulan mulai dan lama (atau terus-menerus). Per bulan bisa: ubah nominal bulan itu saja, ubah dari bulan itu seterusnya, lewati satu bulan, tandai lunas, atau hentikan.
 - Uang belanja = pemasukan bersih − tagihan/cicilan/hutang − tabungan − investasi. Sisa jatah = uang belanja − pengeluaran tercatat.
 
+## Sumber dana (bank, e-wallet, tunai)
+
+Halaman **Sumber dana** mencatat saldo tiap bank/e-wallet/tunai. Saldo dihitung dari saldo awal + pemasukan − potongan − pengeluaran − setoran tabungan ± pindah dana, hanya dari catatan yang memilih sumber dana. Tidak ada sambungan otomatis ke bank atau e-wallet (semua dicatat manual).
+
+Pasang sekali: Supabase → SQL Editor → jalankan isi `supabase/tambah-sumber-dana.sql`. Kalau memakai sinkron Google Sheet, tempel ulang `google-apps-script/Code.gs` (ganti SECRET lagi) dan Deploy → Kelola deployment → Edit → Versi baru, lalu "Sinkronkan semua sekarang".
+
 ## Google Sheet untuk audit (opsional)
 
 Setiap perubahan di aplikasi disalin otomatis ke Google Sheet (satu arah: aplikasi → Sheet). Tab: Pemasukan, Anggaran, Catatan, Tagihan, Status Tagihan, Target Tabungan, Setoran Tabungan, Ringkasan Bulanan, dan **Log perubahan** (siapa, kapan, apa).

@@ -1,12 +1,13 @@
 import { TileTitle } from '@/components/TileTitle'
 import Link from 'next/link'
 import { HeartPulse, History, PenLine, Plus, Receipt, Waypoints } from 'lucide-react'
-import { getCtx, loadMonth } from '@/lib/data'
+import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
 import { addExpense } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
 import { MoneyInput, QuickForm, Submit } from '@/components/Fields'
+import { PocketSelect } from '@/components/PocketSelect'
 
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
@@ -26,7 +27,7 @@ function Gauge({ name, value, goal, kind, text }: { name: string; value: number;
 
 export default async function Beranda() {
   const ctx = await getCtx()
-  const data = await loadMonth(ctx)
+  const [data, { pockets }] = await Promise.all([loadMonth(ctx), loadPockets(ctx)])
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   const title = `Halo, ${ctx.ownerName}`
@@ -88,6 +89,7 @@ export default async function Beranda() {
                   </select>
                 </label>
                 <label className="field"><span>Tanggal</span><input className="input" type="date" name="spent_on" defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} required /></label>
+                <PocketSelect pockets={pockets} full />
                 <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} placeholder="mis. makan siang bareng teman" /></label>
               </div>
               <Submit className="btn full"><Plus aria-hidden /> Catat</Submit>

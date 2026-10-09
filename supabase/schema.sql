@@ -147,3 +147,5 @@ returns table (owner_id uuid, nama text)
 language sql stable security definer set search_path = public as $$
   select p.id, p.nama from public.profiles p where public.can_view(p.id);
 $$;
+
+-- Fitur sumber dana (bank / e-wallet): jalankan juga supabase/tambah-sumber-dana.sql

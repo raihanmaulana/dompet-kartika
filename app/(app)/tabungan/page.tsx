@@ -1,6 +1,6 @@
 import { TileTitle } from '@/components/TileTitle'
 import { CalendarCheck, PiggyBank, Plus, Sparkles } from 'lucide-react'
-import { getCtx, loadGoals, loadMonth } from '@/lib/data'
+import { getCtx, loadGoals, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, goalPlan, rp, summarize, ymLabel } from '@/lib/calc'
 import { addDeposit, addGoal, deleteDeposit, deleteGoal, updateGoalTarget } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
@@ -11,7 +11,8 @@ export const metadata = { title: 'Tabungan' }
 
 export default async function Tabungan() {
   const ctx = await getCtx()
-  const [data, { goals, deposits }] = await Promise.all([loadMonth(ctx), loadGoals(ctx)])
+  const [data, { goals, deposits }, { pockets }] = await Promise.all([loadMonth(ctx), loadGoals(ctx), loadPockets(ctx)])
+  const pk = (id?: string | null) => pockets.find((p) => p.id === id)?.name
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   const saldo = (id: string) => deposits.filter((d) => d.goal_id === id).reduce((t, d) => t + d.amount, 0)
@@ -69,7 +70,7 @@ export default async function Tabungan() {
               {list.length ? (
                 <ul className="rows" style={{ marginTop: 'var(--space-3)' }}>
                   {list.map((d) => (
-                    <li key={d.id}><span className="grow"><span className="name">{d.amount < 0 ? 'Tarik' : 'Setor'}</span><span className="meta">{ymLabel(d.ym)}{d.note ? ` · ${d.note}` : ''}</span></span>
+                    <li key={d.id}><span className="grow"><span className="name">{d.amount < 0 ? 'Tarik' : 'Setor'}</span><span className="meta">{ymLabel(d.ym)}{pk(d.pocket_id) ? ` · ${pk(d.pocket_id)}` : ''}{d.note ? ` · ${d.note}` : ''}</span></span>
                       <span className="amt">{rp(Math.abs(d.amount))}</span>
                       {!ro ? <ActionButton action={deleteDeposit} args={[d.id]} label="Hapus setoran" /> : null}</li>
                   ))}
@@ -81,6 +82,7 @@ export default async function Tabungan() {
                     <input type="hidden" name="goal_id" value={g.id} /><input type="hidden" name="ym" value={ctx.ym} />
                     <select className="select" name="dir" style={{ width: '6.5rem' }} aria-label="Setor atau tarik"><option value="setor">Setor</option><option value="tarik">Tarik</option></select>
                     <div style={{ flex: '1 1 8rem' }}><MoneyInput name="amount" label="Jumlah" required /></div>
+                    {pockets.length ? <select className="select" name="pocket_id" defaultValue="" style={{ width: '9rem' }} aria-label="Sumber dana"><option value="">Tanpa sumber</option>{pockets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : null}
                     <Submit className="btn small">Simpan</Submit>
                   </QuickForm>
                   <div style={{ marginTop: 'var(--space-3)' }}><ActionButton action={deleteGoal} args={[g.id]} label={`Hapus target ${g.name}`} icon={false} text="Hapus target ini" className="btn small ghost" /></div>

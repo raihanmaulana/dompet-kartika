@@ -7,23 +7,31 @@ import { rowEvent, summaryEvent, fullSyncEvents, type SheetEvent } from './sheet
 // ---- Supabase tiruan (memori) ----
 const DB: Record<string, any[]> = {
   income_items: [
-    { id: 'i1', owner_id: 'u', ym: '2026-10', label: 'Gaji kotor', kind: 'masuk', amount: 6500000, sort: 0 },
+    { id: 'i1', owner_id: 'u', ym: '2026-10', label: 'Gaji kotor', kind: 'masuk', amount: 6500000, sort: 0, pocket_id: 'p1' },
     { id: 'i2', owner_id: 'u', ym: '2026-10', label: 'PPh 21', kind: 'potong', amount: 65000, sort: 1 },
   ],
   budget_items: [
     { id: 'b1', owner_id: 'u', ym: '2026-10', grp: 'kebutuhan', label: 'Makan', amount: 1600000, sort: 0 },
     { id: 'b2', owner_id: 'u', ym: '2026-10', grp: 'tabungan', label: 'Dana darurat', amount: 1000000, sort: 1 },
   ],
-  expenses: [{ id: 'e1', owner_id: 'u', ym: '2026-10', spent_on: '2026-10-02', budget_item_id: 'b1', note: 'Makan siang', amount: 35000 }],
+  expenses: [{ id: 'e1', owner_id: 'u', ym: '2026-10', spent_on: '2026-10-02', budget_item_id: 'b1', note: 'Makan siang', amount: 35000, pocket_id: 'p2' }],
   bills: [{ id: 'l1', owner_id: 'u', name: 'Wifi', kind: 'tagihan', amount: 150000, due_day: 5, start_ym: '2026-10', end_ym: null, note: '' }],
   bill_months: [{ bill_id: 'l1', owner_id: 'u', ym: '2026-10', amount_override: 175000, skipped: false, paid: true, paid_at: '2026-10-05T03:00:00Z' }],
   goals: [{ id: 'g1', owner_id: 'u', name: 'Liburan', target: 3000000, is_emergency: false }],
+  pockets: [
+    { id: 'p1', owner_id: 'u', name: 'BCA', kind: 'bank', opening_balance: 1000000, sort: 0 },
+    { id: 'p2', owner_id: 'u', name: 'GoPay', kind: 'ewallet', opening_balance: 0, sort: 1 },
+  ],
+  pocket_transfers: [{ id: 't1', owner_id: 'u', from_pocket: 'p1', to_pocket: 'p2', amount: 300000, moved_on: '2026-10-05', note: 'isi saldo' }],
   goal_deposits: [{ id: 'd1', owner_id: 'u', goal_id: 'g1', ym: '2026-10', amount: 500000, note: '' }],
 }
 function builder(table: string) {
   let rows = DB[table] ?? []
   const b: any = {
     select: () => b,
+    order: () => b,
+    limit: () => b,
+    not: (k: string) => { rows = rows.filter((r) => r[k] != null); return b },
     eq: (k: string, v: any) => { rows = rows.filter((r) => r[k] === v); return b },
     gte: (k: string, v: any) => { rows = rows.filter((r) => r[k] >= v); return b },
     maybeSingle: async () => ({ data: rows[0] ?? null }),
@@ -35,7 +43,12 @@ const sb: any = { from: (t: string) => builder(t) }
 
 test('baris & ringkasan dari database', async () => {
   const c = (await rowEvent(sb, 'expenses', 'e1')) as any
-  assert.deepEqual(c.cells, ['e1', '2026-10', '2026-10-02', 'Makan', 'Makan siang', 35000])
+  assert.deepEqual(c.cells, ['e1', '2026-10', '2026-10-02', 'Makan', 'Makan siang', 35000, 'GoPay'])
+  const pk = (await rowEvent(sb, 'pockets', 'p1')) as any
+  assert.equal(pk.cells[1], 'BCA')
+  assert.equal(pk.cells[4], 1000000 + 6500000 - 300000) // saldo awal + gaji − pindah (hari ini 2026-10 ke atas bergantung jam; lihat catatan)
+  const tf = (await rowEvent(sb, 'pocket_transfers', 't1')) as any
+  assert.deepEqual(tf.cells, ['t1', '2026-10-05', 'BCA', 'GoPay', 300000, 'isi saldo'])
   const st = (await rowEvent(sb, 'bill_months', '', 'l1|2026-10')) as any
   assert.equal(st.cells[3], 175000)
   assert.equal(st.cells[5], 'Lunas')
@@ -67,7 +80,7 @@ function makeSheetApp() {
     return {
       getMaxRows: () => 1000, getMaxColumns: () => 30, getLastRow: () => data.filter(Boolean).length,
       insertRowsAfter() {}, insertColumnsAfter() {}, setFrozenRows() {}, hideColumns() {},
-      getRange: rng,
+      getRange: (r: number, c: number, nr = 1, nc = 1) => ({ ...rng(r, c, nr, nc), getValues: () => [Array.from({ length: nc }, (_, j) => (data[r - 1] ?? [])[c - 1 + j] ?? '')] }),
       deleteRows: (r: number, n: number) => { data.splice(r - 1, n) }, deleteRow: (r: number) => { data.splice(r - 1, 1) },
       appendRow: (cells: any[]) => { data.push(cells) },
     }
@@ -106,7 +119,9 @@ test('skrip Apps Script: tolak kata sandi salah, upsert, hapus, deleteWhere, res
   const r = post(full)
   assert.equal(r.ok, true, JSON.stringify(r))
   assert.equal(sheets['Catatan'].length, 2) // header + 1
-  assert.deepEqual(sheets['Catatan'][1], ['e1', '2026-10', '2026-10-02', 'Makan', 'Makan siang', 35000])
+  assert.deepEqual(sheets['Catatan'][1], ['e1', '2026-10', '2026-10-02', 'Makan', 'Makan siang', 35000, 'GoPay'])
+  assert.equal(sheets['Sumber Dana'].length, 3)
+  assert.equal(sheets['Pindah Dana'].length, 2)
   assert.equal(sheets['Pemasukan'].length, 3)
   assert.equal(sheets['Ringkasan Bulanan'][1][13], 5225000)
   assert.equal(sheets['Log perubahan'].length, 2)

@@ -1,11 +1,11 @@
 // Data contoh untuk DEMO_MODE=1 (hanya untuk melihat tampilan tanpa database).
-import type { Bill, BillMonth, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem } from './types.ts'
+import type { Bill, BillMonth, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, Pocket, Transfer } from './types.ts'
 
 export const demoIncome = (ym: string): IncomeItem[] => [
-  { id: 'i1', ym, label: 'Gaji kotor', kind: 'masuk', amount: 6_500_000, sort: 0 },
-  { id: 'i2', ym, label: 'Potongan PPh 21', kind: 'potong', amount: 65_000, sort: 1 },
-  { id: 'i3', ym, label: 'Potongan BPJS karyawan', kind: 'potong', amount: 195_000, sort: 2 },
-  { id: 'i4', ym, label: 'Uang bulanan dari orang tua', kind: 'masuk', amount: 1_500_000, sort: 3 },
+  { id: 'i1', ym, label: 'Gaji kotor', kind: 'masuk', amount: 6_500_000, sort: 0, pocket_id: 'p1' },
+  { id: 'i2', ym, label: 'Potongan PPh 21', kind: 'potong', amount: 65_000, sort: 1, pocket_id: 'p1' },
+  { id: 'i3', ym, label: 'Potongan BPJS karyawan', kind: 'potong', amount: 195_000, sort: 2, pocket_id: 'p1' },
+  { id: 'i4', ym, label: 'Uang bulanan dari orang tua', kind: 'masuk', amount: 1_500_000, sort: 3, pocket_id: 'p2' },
 ]
 export const demoBudget = (ym: string): BudgetItem[] => [
   { id: 'b1', ym, grp: 'kebutuhan', label: 'Makan', amount: 1_600_000, sort: 0 },
@@ -20,11 +20,11 @@ export const demoBudget = (ym: string): BudgetItem[] => [
   { id: 'b10', ym, grp: 'investasi', label: 'Emas', amount: 200_000, sort: 2 },
 ]
 export const demoExpenses = (ym: string): Expense[] => [
-  { id: 'e1', ym, spent_on: `${ym}-01`, budget_item_id: 'b1', note: 'Makan siang kantor', amount: 35_000 },
-  { id: 'e2', ym, spent_on: `${ym}-02`, budget_item_id: 'b2', note: 'Ojek online', amount: 25_000 },
-  { id: 'e3', ym, spent_on: `${ym}-04`, budget_item_id: 'b4', note: 'Kopi sore', amount: 28_000 },
-  { id: 'e4', ym, spent_on: `${ym}-07`, budget_item_id: 'b5', note: 'Skincare', amount: 120_000 },
-  { id: 'e5', ym, spent_on: `${ym}-08`, budget_item_id: 'b1', note: 'Makan malam bareng teman', amount: 85_000 },
+  { id: 'e1', ym, spent_on: `${ym}-01`, budget_item_id: 'b1', note: 'Makan siang kantor', pocket_id: 'p2', amount: 35_000 },
+  { id: 'e2', ym, spent_on: `${ym}-02`, budget_item_id: 'b2', note: 'Ojek online', pocket_id: 'p3', amount: 25_000 },
+  { id: 'e3', ym, spent_on: `${ym}-04`, budget_item_id: 'b4', note: 'Kopi sore', pocket_id: 'p3', amount: 28_000 },
+  { id: 'e4', ym, spent_on: `${ym}-07`, budget_item_id: 'b5', note: 'Skincare', pocket_id: 'p2', amount: 120_000 },
+  { id: 'e5', ym, spent_on: `${ym}-08`, budget_item_id: 'b1', note: 'Makan malam bareng teman', pocket_id: 'p3', amount: 85_000 },
 ]
 export const demoBills: Bill[] = [
   { id: 'l1', name: 'Wifi kos', kind: 'tagihan', amount: 150_000, due_day: 5, start_ym: '2026-10', end_ym: null, note: '' },
@@ -40,6 +40,16 @@ export const demoGoals: Goal[] = [
   { id: 'g2', name: 'Liburan', target: 3_000_000, is_emergency: false },
 ]
 export const demoDeposits: GoalDeposit[] = [
-  { id: 'd1', goal_id: 'g1', ym: '2026-10', amount: 1_000_000, note: '' },
-  { id: 'd2', goal_id: 'g2', ym: '2026-10', amount: 500_000, note: '' },
+  { id: 'd1', goal_id: 'g1', ym: '2026-10', amount: 1_000_000, note: '', pocket_id: 'p1' },
+  { id: 'd2', goal_id: 'g2', ym: '2026-10', amount: 500_000, note: '', pocket_id: 'p1' },
+]
+
+export const demoPockets: Pocket[] = [
+  { id: 'p1', name: 'BCA', kind: 'bank', opening_balance: 800_000, sort: 0 },
+  { id: 'p2', name: 'GoPay', kind: 'ewallet', opening_balance: 50_000, sort: 1 },
+  { id: 'p3', name: 'ShopeePay', kind: 'ewallet', opening_balance: 0, sort: 2 },
+  { id: 'p4', name: 'Dompet tunai', kind: 'tunai', opening_balance: 150_000, sort: 3 },
+]
+export const demoTransfers: Transfer[] = [
+  { id: 't1', from_pocket: 'p1', to_pocket: 'p3', amount: 300_000, moved_on: '2026-10-03', note: 'Isi saldo untuk jajan' },
 ]

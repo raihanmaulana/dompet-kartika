@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PiggyBank, TrendingUp, Settings, LogOut } from 'lucide-react'
+import { PiggyBank, TrendingUp, Settings, LogOut, Landmark } from 'lucide-react'
 import { getCtx } from '@/lib/data'
 import { LogoutButton } from '@/components/LogoutButton'
 import { PageHead } from '@/components/PageHead'
@@ -8,6 +8,7 @@ export default async function Lainnya() {
   const ctx = await getCtx()
   const links = [
     { href: '/tabungan', label: 'Tabungan & dana darurat', Icon: PiggyBank },
+    { href: '/sumber-dana', label: 'Sumber dana (bank, e-wallet)', Icon: Landmark },
     { href: '/investasi', label: 'Simulasi investasi', Icon: TrendingUp },
     { href: '/pengaturan', label: 'Pengaturan & akses pasangan', Icon: Settings },
   ]

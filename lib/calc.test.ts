@@ -93,3 +93,29 @@ test('goalPlan mencocokkan nama target dengan item anggaran tabungan', async () 
   assert.equal(goalPlan({ name: 'Liburan', is_emergency: false }, items), 300000)
   assert.equal(goalPlan({ name: 'Rumah', is_emergency: false }, items), 0)
 })
+
+test('pocketBalances menghitung saldo tiap sumber dana', async () => {
+  const { pocketBalances } = await import('./calc.ts')
+  const pockets = [
+    { id: 'a', name: 'BCA', kind: 'bank' as const, opening_balance: 1_000_000, sort: 0 },
+    { id: 'b', name: 'GoPay', kind: 'ewallet' as const, opening_balance: 0, sort: 1 },
+  ]
+  const today = { ym: '2026-10', iso: '2026-10-09' }
+  const r = pocketBalances(
+    pockets,
+    [
+      { ym: '2026-10', kind: 'masuk', amount: 6_500_000, pocket_id: 'a' },
+      { ym: '2026-10', kind: 'potong', amount: 260_000, pocket_id: 'a' },
+      { ym: '2026-11', kind: 'masuk', amount: 9_999_999, pocket_id: 'a' }, // bulan depan: belum dihitung
+      { ym: '2026-10', kind: 'masuk', amount: 500_000 }, // tanpa sumber: diabaikan
+    ],
+    [{ spent_on: '2026-10-02', amount: 35_000, pocket_id: 'b' }, { spent_on: '2026-10-20', amount: 1, pocket_id: 'b' }],
+    [{ ym: '2026-10', amount: 1_000_000, pocket_id: 'a' }, { ym: '2026-10', amount: -200_000, pocket_id: 'a' }],
+    [{ id: 't', from_pocket: 'a', to_pocket: 'b', amount: 300_000, moved_on: '2026-10-05', note: '' }],
+    today,
+  )
+  // BCA: 1.000.000 + 6.500.000 − 260.000 − 1.000.000 + 200.000 − 300.000 = 6.140.000
+  assert.equal(r[0].saldo, 6_140_000)
+  // GoPay: −35.000 + 300.000 = 265.000
+  assert.equal(r[1].saldo, 265_000)
+})

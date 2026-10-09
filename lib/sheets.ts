@@ -3,6 +3,8 @@ import { after } from 'next/server.js'
 // Aplikasi tetap sumber data utama. Kegagalan sinkron tidak pernah menggagalkan aksi pengguna.
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { billRowsFor, rp, summarize, ymLabel } from './calc.ts'
+import { queryPockets } from './pockets.ts'
+import { ymOfDate } from './calc.ts'
 import type { Bill, BillMonth, BudgetItem, Expense, IncomeItem } from './types.ts'
 
 export type Cell = string | number | boolean | null
@@ -15,11 +17,13 @@ export type SheetEvent =
 
 export const sheetsEnabled = () => !!process.env.SHEETS_WEBHOOK_URL && !!process.env.SHEETS_WEBHOOK_SECRET
 
-export type Table = 'income_items' | 'budget_items' | 'expenses' | 'bills' | 'bill_months' | 'goals' | 'goal_deposits'
+export type Table = 'income_items' | 'budget_items' | 'expenses' | 'bills' | 'bill_months' | 'goals' | 'goal_deposits' | 'pockets' | 'pocket_transfers'
 const TAB: Record<Table, string> = {
   income_items: 'Pemasukan', budget_items: 'Anggaran', expenses: 'Catatan', bills: 'Tagihan',
   bill_months: 'Status Tagihan', goals: 'Target Tabungan', goal_deposits: 'Setoran Tabungan',
+  pockets: 'Sumber Dana', pocket_transfers: 'Pindah Dana',
 }
+const POCKET_KIND: Record<string, string> = { bank: 'Bank', ewallet: 'E-wallet', tunai: 'Tunai', lainnya: 'Lainnya' }
 const GRP_LABEL: Record<string, string> = { kebutuhan: 'Kebutuhan pokok', gaya_hidup: 'Gaya hidup', tabungan: 'Tabungan', investasi: 'Investasi' }
 const KIND_LABEL: Record<string, string> = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang' }
 export const SUMMARY_TAB = 'Ringkasan Bulanan'
@@ -61,6 +65,18 @@ export function logEvent(actor: string, aksi: string, tabel: string, ringkasan: 
 
 type Row = Record<string, any>
 
+async function pocketName(sb: SupabaseClient, id: string | null | undefined) {
+  if (!id) return ''
+  return ((await sb.from('pockets').select('name').eq('id', id).maybeSingle()).data?.name as string | undefined) ?? ''
+}
+const today = () => { const t = ymOfDate(new Date()); return { ym: t.ym, iso: t.iso } }
+
+/** Baris Sheet untuk semua sumber dana (saldo ikut berubah setiap ada catatan baru, jadi dikirim ulang). */
+export async function pocketEvents(sb: SupabaseClient, owner: string): Promise<SheetEvent[]> {
+  const { pockets } = await queryPockets(sb, owner, today())
+  return pockets.map((p) => ({ op: 'upsert', tab: TAB.pockets, id: p.id, cells: [p.id, p.name, POCKET_KIND[p.kind] ?? p.kind, p.opening_balance, p.saldo] }) as SheetEvent)
+}
+
 /** Susun satu baris sheet dari baris database (null kalau tidak ada → dianggap terhapus). */
 export async function rowEvent(sb: SupabaseClient, table: Table, id: string, key?: string): Promise<SheetEvent> {
   const tab = TAB[table]
@@ -79,18 +95,27 @@ export async function rowEvent(sb: SupabaseClient, table: Table, id: string, key
   const { data: r } = (await sb.from(table).select('*').eq('id', id).maybeSingle()) as { data: Row | null }
   if (!r) return { op: 'delete', tab, id }
   switch (table) {
-    case 'income_items': return { op: 'upsert', tab, id, cells: [id, r.ym, r.label, r.kind === 'masuk' ? 'Uang masuk' : 'Potongan', Number(r.amount)] }
+    case 'income_items': return { op: 'upsert', tab, id, cells: [id, r.ym, r.label, r.kind === 'masuk' ? 'Uang masuk' : 'Potongan', Number(r.amount), await pocketName(sb, r.pocket_id)] }
     case 'budget_items': return { op: 'upsert', tab, id, cells: [id, r.ym, GRP_LABEL[r.grp] ?? r.grp, r.label, Number(r.amount)] }
     case 'expenses': {
       let kat = ''
       if (r.budget_item_id) kat = (await sb.from('budget_items').select('label').eq('id', r.budget_item_id).maybeSingle()).data?.label ?? ''
-      return { op: 'upsert', tab, id, cells: [id, r.ym, r.spent_on, kat, r.note, Number(r.amount)] }
+      return { op: 'upsert', tab, id, cells: [id, r.ym, r.spent_on, kat, r.note, Number(r.amount), await pocketName(sb, r.pocket_id)] }
     }
     case 'bills': return { op: 'upsert', tab, id, cells: [id, r.name, KIND_LABEL[r.kind] ?? r.kind, Number(r.amount), r.due_day, r.start_ym, r.end_ym ?? 'terus', r.note] }
     case 'goals': return { op: 'upsert', tab, id, cells: [id, r.name, Number(r.target), r.is_emergency ? 'Ya' : 'Tidak'] }
     case 'goal_deposits': {
       const g = (await sb.from('goals').select('name').eq('id', r.goal_id).maybeSingle()).data
-      return { op: 'upsert', tab, id, cells: [id, r.ym, g?.name ?? '', Number(r.amount), r.note, r.goal_id] }
+      return { op: 'upsert', tab, id, cells: [id, r.ym, g?.name ?? '', Number(r.amount), r.note, r.goal_id, await pocketName(sb, r.pocket_id)] }
+    }
+    case 'pockets': {
+      const { pockets } = await queryPockets(sb, r.owner_id, today())
+      const p = pockets.find((x) => x.id === id)
+      return { op: 'upsert', tab, id, cells: [id, r.name, POCKET_KIND[r.kind] ?? r.kind, Number(r.opening_balance), p?.saldo ?? 0] }
+    }
+    case 'pocket_transfers': {
+      const [a, b] = await Promise.all([pocketName(sb, r.from_pocket), pocketName(sb, r.to_pocket)])
+      return { op: 'upsert', tab, id, cells: [id, r.moved_on, a, b, Number(r.amount), r.note] }
     }
   }
 }
@@ -124,7 +149,7 @@ export const fmtRp = rp
 
 /** Isi ulang seluruh sheet dari database (pertama kali tersambung, atau untuk pemulihan). */
 export async function fullSyncEvents(sb: SupabaseClient, owner: string): Promise<SheetEvent[]> {
-  const tables: Table[] = ['income_items', 'budget_items', 'expenses', 'bills', 'bill_months', 'goals', 'goal_deposits']
+  const tables: Table[] = ['pockets', 'pocket_transfers', 'income_items', 'budget_items', 'expenses', 'bills', 'bill_months', 'goals', 'goal_deposits']
   const ev: SheetEvent[] = [...Object.values(TAB), SUMMARY_TAB].map((tab) => ({ op: 'reset', tab }) as SheetEvent)
   const months = new Set<string>()
   for (const t of tables) {
@@ -133,7 +158,7 @@ export async function fullSyncEvents(sb: SupabaseClient, owner: string): Promise
       for (const r of data ?? []) ev.push(await rowEvent(sb, t, '', `${r.bill_id}|${r.ym}`))
       continue
     }
-    const { data } = await sb.from(t).select(t === 'bills' || t === 'goals' ? 'id' : 'id,ym').eq('owner_id', owner)
+    const { data } = await sb.from(t).select(t === 'bills' || t === 'goals' || t === 'pockets' || t === 'pocket_transfers' ? 'id' : 'id,ym').eq('owner_id', owner)
     for (const r of (data ?? []) as unknown as Row[]) {
       if (r.ym) months.add(r.ym)
       ev.push(await rowEvent(sb, t, r.id))

@@ -1,11 +1,12 @@
 import { TileTitle } from '@/components/TileTitle'
 import Link from 'next/link'
 import { Banknote, Calculator, Home, PiggyBank, Plus, Sparkle, TrendingUp } from 'lucide-react'
-import { getCtx, loadMonth } from '@/lib/data'
+import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { addBudget, addIncome, deleteBudget, deleteIncome, updateBudget, updateIncome } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
+import { PocketSelect } from '@/components/PocketSelect'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 import type { Grp } from '@/lib/types'
 
@@ -22,7 +23,8 @@ const GROUP_ICONS = { kebutuhan: Home, gaya_hidup: Sparkle, tabungan: PiggyBank,
 
 export default async function Anggaran() {
   const ctx = await getCtx()
-  const data = await loadMonth(ctx)
+  const [data, { pockets }] = await Promise.all([loadMonth(ctx), loadPockets(ctx)])
+  const pk = (id?: string | null) => pockets.find((p) => p.id === id)?.name
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   if (!data.income.length && !data.budget.length) {
@@ -41,7 +43,7 @@ export default async function Anggaran() {
             {data.income.map((i) => (
               <li key={i.id} className="row">
                 <span className="grow"><InlineField id={i.id} field="label" value={i.label} action={updateIncome} label="Nama pemasukan" disabled={ro} />
-                  <span className="meta" style={{ paddingLeft: 8 }}>{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}</span></span>
+                  <span className="meta" style={{ paddingLeft: 8 }}>{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{pk(i.pocket_id) ? ` · ${pk(i.pocket_id)}` : ''}</span></span>
                 <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={i.id} field="amount" value={i.amount} money action={updateIncome} label={`Nominal ${i.label}`} disabled={ro} /></span>
                 {!ro ? <ActionButton action={deleteIncome} args={[i.id]} label={`Hapus ${i.label}`} /> : null}
               </li>
@@ -53,6 +55,7 @@ export default async function Anggaran() {
               <label className="field"><span>Tambah</span><input className="input" name="label" placeholder="mis. Bonus" maxLength={80} required /></label>
               <label className="field"><span>Jenis</span><select className="select" name="kind"><option value="masuk">Uang masuk</option><option value="potong">Potongan</option></select></label>
               <label className="field"><span>Nominal</span><MoneyInput name="amount" label="Nominal" /></label>
+              <PocketSelect pockets={pockets} label="Masuk ke / dipotong dari" full />
               <div className="full"><Submit className="btn small ghost"><Plus aria-hidden /> Tambah</Submit></div>
             </QuickForm>
           ) : null}
