@@ -2,7 +2,7 @@ import { TileTitle } from '@/components/TileTitle'
 import { CalendarCheck, PiggyBank, Plus, Sparkles } from 'lucide-react'
 import { getCtx, loadGoals, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, goalPlan, rp, summarize, ymLabel } from '@/lib/calc'
-import { addDeposit, addGoal, deleteDeposit, deleteGoal, updateGoalTarget } from '@/lib/actions'
+import { addDeposit, addGoal, deleteDeposit, deleteGoal, setGoalPlan, updateGoalTarget } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { Stamp } from '@/components/Stamp'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
@@ -44,6 +44,8 @@ export default async function Tabungan() {
             <li><span className="grow name">Sudah disetor</span><span className="amt">{rp(monthDeposit)}</span></li>
             <li className="total-row"><span className="grow">Kurang</span><span className="amt">{rp(Math.max(0, s.grp.tabungan - monthDeposit))}</span></li>
           </ul>
+          {s.grp.tabungan <= 0 ? <p className="hint" style={{ marginTop: 'var(--space-3)' }}>Belum ada rencana tabungan bulan ini. Isi "Rencana" di kartu target di bawah, atau di halaman Anggaran.</p> : null}
+          {s.grp.tabungan > 0 && monthDeposit >= s.grp.tabungan ? <Stamp id="semua" name="semua tabungan" monthLabel={ymLabel(ctx.ym)} /> : null}
         </section>
 
         {goals.map((g, idx) => {
@@ -60,9 +62,13 @@ export default async function Tabungan() {
                 {g.is_emergency ? <span className="chip ok">Dana darurat</span> : null}
               </div>
               <p className="big" style={{ fontSize: '2.1rem' }}>{rp(sd)}</p>
-              {plan > 0 ? <p className="hint" style={{ marginTop: 'var(--space-1)' }}>{ymLabel(ctx.ym)}: {rp(Math.max(0, doneMonth))} dari rencana {rp(plan)}</p> : null}
+              <p className="hint" style={{ marginTop: 'var(--space-1)' }}>{ymLabel(ctx.ym)}: disetor {rp(Math.max(0, doneMonth))}{plan > 0 ? ` dari rencana ${rp(plan)}` : ''}</p>
               {stamped ? <Stamp id={g.id} name={g.name} monthLabel={ymLabel(ctx.ym)} /> : null}
               <div className={`meter ${p >= 100 ? 'ok' : ''}`} style={{ margin: 'var(--space-3) 0' }}><i style={{ width: `${p}%` }} /></div>
+              <div className="row" style={{ border: 0, padding: 0 }}>
+                <span className="grow hint" style={{ whiteSpace: 'nowrap' }}>Rencana {ymLabel(ctx.ym, true)}</span>
+                <span style={{ width: '10.5rem' }}><InlineField id={g.id} field="plan" value={plan} money action={setGoalPlan} label={`Rencana setoran ${g.name} bulan ini`} disabled={ro} /></span>
+              </div>
               <div className="row" style={{ border: 0, padding: 0 }}>
                 <span className="grow hint">Target</span>
                 <span style={{ width: '10.5rem' }}><InlineField id={g.id} field="target" value={g.target} money action={updateGoalTarget} label={`Target ${g.name}`} disabled={ro} /></span>
@@ -82,7 +88,7 @@ export default async function Tabungan() {
                     <input type="hidden" name="goal_id" value={g.id} /><input type="hidden" name="ym" value={ctx.ym} />
                     <select className="select" name="dir" style={{ width: '6.5rem' }} aria-label="Setor atau tarik"><option value="setor">Setor</option><option value="tarik">Tarik</option></select>
                     <div style={{ flex: '1 1 8rem' }}><MoneyInput name="amount" label="Jumlah" required /></div>
-                    {pockets.length ? <select className="select" name="pocket_id" defaultValue="" style={{ width: '9rem' }} aria-label="Sumber dana"><option value="">Tanpa sumber</option>{pockets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : null}
+                    {pockets.length ? <select className="select" name="pocket_id" defaultValue="" style={{ width: 'auto', minWidth: '11rem' }} aria-label="Sumber dana"><option value="">Tanpa sumber</option>{pockets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select> : null}
                     <Submit className="btn small">Simpan</Submit>
                   </QuickForm>
                   <div style={{ marginTop: 'var(--space-3)' }}><ActionButton action={deleteGoal} args={[g.id]} label={`Hapus target ${g.name}`} icon={false} text="Hapus target ini" className="btn small ghost" /></div>

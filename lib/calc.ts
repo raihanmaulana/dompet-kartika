@@ -172,17 +172,19 @@ export const INSTRUMENTS = [
 ] as const
 
 
-/** Rencana setoran bulan ini untuk satu target: item anggaran "tabungan" dengan nama yang cocok. */
-export function goalPlan(goal: { name: string; is_emergency: boolean }, tabunganItems: { label: string; amount: number }[]) {
+/** Item anggaran "tabungan" yang menjadi rencana setoran sebuah target (cocok nama, atau "darurat" untuk dana darurat). */
+export function planItems<T extends { label: string }>(goal: { name: string; is_emergency: boolean }, tabunganItems: T[]): T[] {
   const norm = (t: string) => t.toLowerCase().replace(/\s+/g, ' ').trim()
   const g = norm(goal.name)
-  const hit = (pred: (l: string) => boolean) => tabunganItems.filter((i) => pred(norm(i.label))).reduce((t, i) => t + i.amount, 0)
-  let plan = hit((l) => l === g)
-  if (!plan) plan = hit((l) => l.includes(g) || (l.length > 2 && g.includes(l)))
-  if (!plan && goal.is_emergency) plan = hit((l) => l.includes('darurat'))
-  return plan
+  const pick = (pred: (l: string) => boolean) => tabunganItems.filter((i) => pred(norm(i.label)))
+  let hit = pick((l) => l === g)
+  if (!hit.length) hit = pick((l) => l.includes(g) || (l.length > 2 && g.includes(l)))
+  if (!hit.length && goal.is_emergency) hit = pick((l) => l.includes('darurat'))
+  return hit
 }
-
+export function goalPlan(goal: { name: string; is_emergency: boolean }, tabunganItems: { label: string; amount: number }[]) {
+  return planItems(goal, tabunganItems).reduce((t, i) => t + i.amount, 0)
+}
 
 /**
  * Saldo tiap sumber dana (sampai hari ini):

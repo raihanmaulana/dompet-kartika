@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
-import { isYm, ymAdd, ymLabel, ymOfDate } from './calc.ts'
+import { isYm, planItems, ymAdd, ymLabel, ymOfDate } from './calc.ts'
 import { DEMO } from './data.ts'
 import { supabaseServer } from './supabase/server.ts'
 import { fmtRp, fullSyncEvents, logEvent, pocketEvents, postEvents, queue, rowEvent, sheetsEnabled, summaryEvent, type SheetEvent, type Table } from './sheets.ts'
@@ -389,6 +389,28 @@ export async function addDeposit(formData: FormData) {
   const { data: row } = await c.sb.from('goal_deposits').insert({ goal_id, owner_id: c.uid, ym, amount, note: text(formData.get('note'), 80), pocket_id }).select('id').single()
   const gname = (await c.sb.from('goals').select('name').eq('id', goal_id).maybeSingle()).data?.name ?? ''
   if (row) await mirror(c, [{ table: 'goal_deposits', id: row.id }], amount < 0 ? 'Tarik' : 'Setor', 'Setoran Tabungan', `${ymLabel(ym)}: ${gname} ${fmtRp(Math.abs(amount))}`)
+  done()
+}
+/** Atur rencana setoran bulan ini untuk sebuah target (disimpan sebagai item anggaran Tabungan bulan itu). */
+export async function setGoalPlan(goalId: string, _field: string, value: string) {
+  const c = await me()
+  if (!c) return done()
+  const ym = await curYm()
+  const { data: g } = await c.sb.from('goals').select('name,is_emergency').eq('id', goalId).eq('owner_id', c.uid).maybeSingle()
+  if (!g) return
+  const amount = money(value)
+  const { data: items } = await c.sb.from('budget_items').select('id,label,amount').eq('owner_id', c.uid).eq('ym', ym).eq('grp', 'tabungan')
+  const hit = planItems({ name: g.name as string, is_emergency: !!g.is_emergency }, (items ?? []).map((r) => ({ ...r, amount: Number(r.amount) })))
+  let id: string | undefined
+  if (hit.length) {
+    id = hit[0].id as string
+    const others = hit.slice(1).reduce((t, i) => t + i.amount, 0)
+    await c.sb.from('budget_items').update({ amount: Math.max(0, amount - others) }).eq('id', id).eq('owner_id', c.uid)
+  } else {
+    const { data: row } = await c.sb.from('budget_items').insert({ owner_id: c.uid, ym, grp: 'tabungan', label: g.name, amount, sort: 99 }).select('id').single()
+    id = row?.id as string | undefined
+  }
+  if (id) await mirror(c, [{ table: 'budget_items', id }], 'Ubah', 'Anggaran', `${ymLabel(ym)}: rencana setoran ${g.name} ${fmtRp(amount)}`, [ym])
   done()
 }
 export async function deleteDeposit(id: string) {
