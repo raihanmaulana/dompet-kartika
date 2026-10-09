@@ -321,6 +321,22 @@ export async function stopBill(billId: string, ym: string) {
   done()
 }
 
+/** Hapus tagihan seluruhnya (semua bulan, termasuk status bayar/lewati). */
+export async function deleteBill(billId: string) {
+  const c = await me()
+  if (!c) return done()
+  const { data: b } = await c.sb.from('bills').select('name,start_ym,end_ym').eq('id', billId).eq('owner_id', c.uid).maybeSingle()
+  if (!b) return
+  await c.sb.from('bills').delete().eq('id', billId).eq('owner_id', c.uid)
+  const now = await curYm()
+  const last = b.end_ym ?? ymAdd(now, 24)
+  const months: string[] = [now]
+  for (let m = b.start_ym, n = 0; m <= last && n < 60; m = ymAdd(m, 1), n++) months.push(m)
+  await mirror(c, [{ table: 'bills', id: billId }], 'Hapus', 'Tagihan', `${b.name}: dihapus seluruhnya`, [...new Set(months)],
+    [{ op: 'deleteWhere', tab: 'Status Tagihan', col: 'Id tagihan', value: billId }])
+  done()
+}
+
 // ---------- Tabungan ----------
 export async function addGoal(formData: FormData) {
   const name = text(formData.get('name'))

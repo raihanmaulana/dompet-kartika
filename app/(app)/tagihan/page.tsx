@@ -2,7 +2,8 @@ import { TileTitle } from '@/components/TileTitle'
 import { ListChecks, Plus } from 'lucide-react'
 import { getCtx, loadMonth } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
-import { addBill, changeBillFrom, setBillAmountThisMonth, setBillPaid, setBillSkipped, stopBill } from '@/lib/actions'
+import { addBill, changeBillFrom, deleteBill, setBillAmountThisMonth, setBillPaid, setBillSkipped, stopBill } from '@/lib/actions'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import { PageHead } from '@/components/PageHead'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit, Toggle } from '@/components/Fields'
 
@@ -102,6 +103,8 @@ export default async function Tagihan() {
                       <InlineField id={`${r.bill.id}|${ctx.ym}`} field="amount" value={r.amount} money action={setBillAmountThisMonth}
                         label={`Nominal ${r.bill.name} bulan ini`} disabled={!ctx.canEdit || r.skipped} />
                     </span>
+                    {ctx.canEdit ? (<ConfirmButton action={deleteBill} args={[r.bill.id]} trigger="Hapus" className="btn small ghost" title={`Hapus "${r.bill.name}"?`}
+  message="Tagihan ini dihapus dari semua bulan, termasuk status bayarnya. Jatah belanja ikut dihitung ulang. Tidak bisa dibatalkan." />) : null}
                   </li>
                 )
               })}
