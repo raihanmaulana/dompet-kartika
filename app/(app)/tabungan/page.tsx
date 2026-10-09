@@ -53,6 +53,7 @@ export default async function Tabungan() {
           const p = g.target > 0 ? Math.min(100, (sd / g.target) * 100) : 0
           const plan = goalPlan(g, data.budget.filter((b) => b.grp === 'tabungan'))
           const doneMonth = deposits.filter((d) => d.goal_id === g.id && d.ym === ctx.ym).reduce((t, d) => t + d.amount, 0)
+          const reached = g.target > 0 && sd >= g.target
           const stamped = plan > 0 && doneMonth >= plan
           const list = deposits.filter((d) => d.goal_id === g.id).slice(0, 4)
           return (
@@ -63,7 +64,8 @@ export default async function Tabungan() {
               </div>
               <p className="big" style={{ fontSize: '2.1rem' }}>{rp(sd)}</p>
               <p className="hint" style={{ marginTop: 'var(--space-1)' }}>{ymLabel(ctx.ym)}: disetor {rp(Math.max(0, doneMonth))}{plan > 0 ? ` dari rencana ${rp(plan)}` : ''}</p>
-              {stamped ? <Stamp id={g.id} name={g.name} monthLabel={ymLabel(ctx.ym)} /> : null}
+              {reached ? <Stamp id={g.id} name={g.name} monthLabel={ymLabel(ctx.ym)} variant="target" /> : stamped ? <Stamp id={g.id} name={g.name} monthLabel={ymLabel(ctx.ym)} /> : null}
+              {plan <= 0 && !reached ? <p className="hint" style={{ marginTop: 'var(--space-2)' }}>Isi "Rencana" di bawah (mis. 100.000) supaya kartu "Bulan ini" dan stempel bulanan ikut bekerja.</p> : null}
               <div className={`meter ${p >= 100 ? 'ok' : ''}`} style={{ margin: 'var(--space-3) 0' }}><i style={{ width: `${p}%` }} /></div>
               <div className="row" style={{ border: 0, padding: 0 }}>
                 <span className="grow hint" style={{ whiteSpace: 'nowrap' }}>Rencana {ymLabel(ctx.ym, true)}</span>
