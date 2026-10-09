@@ -410,3 +410,11 @@ ul.rows { margin: 0; padding: 0; }
 .confirm-icon svg { width: 26px; height: 26px; }
 .btn.danger { background: var(--color-over); color: var(--color-surface); border-color: var(--color-over); }
 .btn.danger:hover { background: oklch(48% 0.19 25); }
+
+/* ---------- v3: hujan confetti ---------- */
+.rain { position: fixed; inset: 0; z-index: 120; pointer-events: none; overflow: hidden; }
+.rb { position: absolute; top: -24px; border-radius: 3px; opacity: 0; animation: rainfall linear both; }
+.rb.k1 { border-radius: 50%; }
+.rb.c0 { background: var(--color-accent); } .rb.c1 { background: var(--color-warn); } .rb.c2 { background: var(--color-ok); } .rb.c3 { background: var(--color-tone-lilac-deep); } .rb.c4 { background: var(--color-accent-deep); }
+@keyframes rainfall { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 85% { opacity: 1; } 100% { transform: translate(var(--dx), 105vh) rotate(var(--rot)); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .rain { display: none; } }
