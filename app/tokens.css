@@ -1,0 +1,65 @@
+/* Hallmark · custom theme "Rosewater" · genre: playful · macrostructure: Bento Grid
+ * vibe: milk-paper, rose blush, round and tactile, warm
+ * paper oklch(97.5% 0.012 8) · accent oklch(72% 0.15 2) pink · Bricolage Grotesque + Figtree
+ * axes: paper-band light / display rounded-grotesk / accent warm-pink(0-20°)
+ */
+:root {
+  /* color */
+  --color-paper: oklch(97.5% 0.012 8);
+  --color-paper-2: oklch(95.2% 0.022 8);
+  --color-paper-3: oklch(91.8% 0.04 6);
+  --color-surface: oklch(99.2% 0.006 8);
+  --color-ink: oklch(23% 0.04 5);
+  --color-ink-2: oklch(38% 0.04 5);
+  --color-muted: oklch(50% 0.035 5);
+  --color-rule: oklch(86% 0.03 8);
+  --color-rule-2: oklch(91.5% 0.024 8);
+  --color-accent: oklch(72% 0.15 2);
+  --color-accent-2: oklch(66% 0.17 2);
+  --color-accent-deep: oklch(48% 0.16 3);
+  --color-accent-ink: oklch(23% 0.04 5);
+  --color-focus: oklch(60% 0.2 2);
+  --color-ok: oklch(72% 0.1 160);
+  --color-ok-soft: oklch(94% 0.04 160);
+  --color-ok-ink: oklch(36% 0.08 160);
+  --color-warn: oklch(87% 0.12 90);
+  --color-warn-soft: oklch(95% 0.05 90);
+  --color-warn-ink: oklch(42% 0.09 80);
+  --color-over: oklch(55% 0.19 25);
+  --color-over-soft: oklch(94% 0.04 25);
+  --color-shadow: oklch(60% 0.12 5 / 0.38);
+
+  /* type */
+  --font-display: 'Bricolage Grotesque Variable', 'Bricolage Grotesque', ui-rounded, sans-serif;
+  --font-body: 'Figtree Variable', 'Figtree', ui-rounded, sans-serif;
+  --text-xs: 0.78rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.15rem;
+  --text-xl: 1.4rem;
+  --text-2xl: clamp(1.7rem, 3.4vw, 2.2rem);
+  --text-display: clamp(2.7rem, 7vw, 4.8rem);
+
+  /* space (4pt) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+
+  /* shape */
+  --radius-card: 20px;
+  --radius-field: 12px;
+  --radius-pill: 999px;
+  --rule-w: 1.5px;
+
+  /* motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.64, 0, 0.78, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-med: 260ms;
+}

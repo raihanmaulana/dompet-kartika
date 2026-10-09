@@ -1,0 +1,31 @@
+import Link from 'next/link'
+import { PiggyBank, TrendingUp, Settings, LogOut } from 'lucide-react'
+import { getCtx } from '@/lib/data'
+import { signOut } from '@/lib/auth-actions'
+import { PageHead } from '@/components/PageHead'
+
+export default async function Lainnya() {
+  const ctx = await getCtx()
+  const links = [
+    { href: '/tabungan', label: 'Tabungan & dana darurat', Icon: PiggyBank },
+    { href: '/investasi', label: 'Simulasi investasi', Icon: TrendingUp },
+    { href: '/pengaturan', label: 'Pengaturan & akses pasangan', Icon: Settings },
+  ]
+  return (
+    <>
+      <PageHead ctx={ctx} title="Menu" month={false} />
+      <div className="bento">
+        <section className="tile s12" style={{ ['--i' as string]: 0 }}>
+          <ul className="rows">
+            {links.map(({ href, label, Icon }) => (
+              <li key={href}><Icon aria-hidden size={20} /><Link href={href} className="grow name" style={{ textDecoration: 'none' }}>{label}</Link></li>
+            ))}
+            <li><LogOut aria-hidden size={20} />
+              <form action={signOut} className="grow"><button type="submit" className="btn ghost small">Keluar</button></form>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </>
+  )
+}
