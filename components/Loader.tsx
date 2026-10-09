@@ -21,10 +21,11 @@ export function Loader({ className = '' }: { className?: string }) {
   )
 }
 
-export const LOADING_LINES = [
-  'Menghitung uang receh…',
-  'Merapikan dompet…',
-  'Menyusun koin satu-satu…',
-  'Mengintip sisa jatah…',
-  'Sebentar, lagi disimpan…',
-]
+/** Kalimat lucu yang berganti sesuai kemajuan bar. */
+export function stageLine(pct: number) {
+  if (pct >= 100) return 'Beres! Dompetnya rapi'
+  if (pct >= 85) return 'Hampir selesai, tahan sebentar…'
+  if (pct >= 60) return 'Merapikan dompet…'
+  if (pct >= 30) return 'Menghitung uang receh…'
+  return 'Mengumpulkan koin…'
+}
