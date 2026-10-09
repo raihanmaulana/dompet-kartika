@@ -1,11 +1,11 @@
 'use client'
 import { useActionState, useState } from 'react'
 import { useBusyFlag } from './Busy'
-import { signIn, signUp, type AuthState } from '@/lib/auth-actions'
+import { authenticate, type AuthState } from '@/lib/auth-actions'
 
 export function AuthForm() {
   const [mode, setMode] = useState<'masuk' | 'daftar'>('masuk')
-  const [st, act, pending] = useActionState<AuthState, FormData>(mode === 'masuk' ? signIn : signUp, null)
+  const [st, act, pending] = useActionState<AuthState, FormData>(authenticate, null)
   useBusyFlag(pending)
   return (
     <div className="auth-card">
@@ -14,6 +14,7 @@ export function AuthForm() {
         <button type="button" aria-pressed={mode === 'daftar'} onClick={() => setMode('daftar')}>Daftar</button>
       </div>
       <form action={act} className="stack" key={mode}>
+        <input type="hidden" name="mode" value={mode} />
         {mode === 'daftar' ? <label className="field"><span>Nama panggilan</span><input className="input" name="nama" autoComplete="nickname" required maxLength={40} /></label> : null}
         <label className="field"><span>Email</span><input className="input" type="email" name="email" autoComplete="email" required /></label>
         <label className="field"><span>Kata sandi</span><input className="input" type="password" name="password" autoComplete={mode === 'masuk' ? 'current-password' : 'new-password'} required minLength={mode === 'daftar' ? 8 : undefined} /></label>

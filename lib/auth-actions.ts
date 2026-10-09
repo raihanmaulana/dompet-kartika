@@ -44,3 +44,8 @@ export async function signOut() {
   ;(await cookies()).delete('view_as')
   redirect('/masuk')
 }
+
+/** Satu pintu untuk form masuk/daftar: mode dibaca dari isian form, jadi tidak bisa tertukar. */
+export async function authenticate(prev: AuthState, fd: FormData): Promise<AuthState> {
+  return fd.get('mode') === 'daftar' ? signUp(prev, fd) : signIn(prev, fd)
+}
