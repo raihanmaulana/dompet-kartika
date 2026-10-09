@@ -84,3 +84,12 @@ test('nilai masa depan', () => {
   const fv = futureValue(1_000_000, 0.10, 5)
   assert.ok(fv > 76_000_000 && fv < 77_000_000, String(fv))
 })
+
+test('goalPlan mencocokkan nama target dengan item anggaran tabungan', async () => {
+  const { goalPlan } = await import('./calc.ts')
+  const items = [{ label: 'Dana Darurat', amount: 1000000 }, { label: 'Liburan', amount: 300000 }]
+  assert.equal(goalPlan({ name: 'Dana darurat', is_emergency: true }, items), 1000000)
+  assert.equal(goalPlan({ name: 'Dana', is_emergency: true }, [{ label: 'Tabungan darurat', amount: 5 }]), 5)
+  assert.equal(goalPlan({ name: 'Liburan', is_emergency: false }, items), 300000)
+  assert.equal(goalPlan({ name: 'Rumah', is_emergency: false }, items), 0)
+})

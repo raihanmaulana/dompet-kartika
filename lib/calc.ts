@@ -170,3 +170,15 @@ export const INSTRUMENTS = [
   { key: 'emas', label: 'Emas', rate: 0.07, risk: 'Menengah' },
   { key: 'rd_saham', label: 'Reksa dana indeks saham', rate: 0.10, risk: 'Menengah–tinggi' },
 ] as const
+
+
+/** Rencana setoran bulan ini untuk satu target: item anggaran "tabungan" dengan nama yang cocok. */
+export function goalPlan(goal: { name: string; is_emergency: boolean }, tabunganItems: { label: string; amount: number }[]) {
+  const norm = (t: string) => t.toLowerCase().replace(/\s+/g, ' ').trim()
+  const g = norm(goal.name)
+  const hit = (pred: (l: string) => boolean) => tabunganItems.filter((i) => pred(norm(i.label))).reduce((t, i) => t + i.amount, 0)
+  let plan = hit((l) => l === g)
+  if (!plan) plan = hit((l) => l.includes(g) || (l.length > 2 && g.includes(l)))
+  if (!plan && goal.is_emergency) plan = hit((l) => l.includes('darurat'))
+  return plan
+}

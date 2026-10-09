@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { PiggyBank, TrendingUp, Settings, LogOut } from 'lucide-react'
 import { getCtx } from '@/lib/data'
-import { signOut } from '@/lib/auth-actions'
+import { LogoutButton } from '@/components/LogoutButton'
 import { PageHead } from '@/components/PageHead'
 
 export default async function Lainnya() {
@@ -21,7 +21,7 @@ export default async function Lainnya() {
               <li key={href}><Icon aria-hidden size={20} /><Link href={href} className="grow name" style={{ textDecoration: 'none' }}>{label}</Link></li>
             ))}
             <li><LogOut aria-hidden size={20} />
-              <form action={signOut} className="grow"><button type="submit" className="btn ghost small">Keluar</button></form>
+              <span className="grow"><LogoutButton /></span>
             </li>
           </ul>
         </section>

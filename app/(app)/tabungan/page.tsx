@@ -1,9 +1,10 @@
 import { TileTitle } from '@/components/TileTitle'
 import { CalendarCheck, PiggyBank, Plus, Sparkles } from 'lucide-react'
 import { getCtx, loadGoals, loadMonth } from '@/lib/data'
-import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
+import { billRowsFor, goalPlan, rp, summarize, ymLabel } from '@/lib/calc'
 import { addDeposit, addGoal, deleteDeposit, deleteGoal, updateGoalTarget } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
+import { Stamp } from '@/components/Stamp'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
 export const metadata = { title: 'Tabungan' }
@@ -47,6 +48,9 @@ export default async function Tabungan() {
         {goals.map((g, idx) => {
           const sd = saldo(g.id)
           const p = g.target > 0 ? Math.min(100, (sd / g.target) * 100) : 0
+          const plan = goalPlan(g, data.budget.filter((b) => b.grp === 'tabungan'))
+          const doneMonth = deposits.filter((d) => d.goal_id === g.id && d.ym === ctx.ym).reduce((t, d) => t + d.amount, 0)
+          const stamped = plan > 0 && doneMonth >= plan
           const list = deposits.filter((d) => d.goal_id === g.id).slice(0, 4)
           return (
             <section key={g.id} className="tile s6" style={{ ['--i' as string]: idx + 2 }} aria-labelledby={`g-${g.id}`}>
@@ -55,6 +59,8 @@ export default async function Tabungan() {
                 {g.is_emergency ? <span className="chip ok">Dana darurat</span> : null}
               </div>
               <p className="big" style={{ fontSize: '2.1rem' }}>{rp(sd)}</p>
+              {plan > 0 ? <p className="hint" style={{ marginTop: 'var(--space-1)' }}>{ymLabel(ctx.ym)}: {rp(Math.max(0, doneMonth))} dari rencana {rp(plan)}</p> : null}
+              {stamped ? <Stamp id={g.id} name={g.name} monthLabel={ymLabel(ctx.ym)} /> : null}
               <div className={`meter ${p >= 100 ? 'ok' : ''}`} style={{ margin: 'var(--space-3) 0' }}><i style={{ width: `${p}%` }} /></div>
               <div className="row" style={{ border: 0, padding: 0 }}>
                 <span className="grow hint">Target</span>

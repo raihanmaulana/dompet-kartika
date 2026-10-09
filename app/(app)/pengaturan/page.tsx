@@ -2,7 +2,7 @@ import { TileTitle } from '@/components/TileTitle'
 import { Eye, Plus, Sheet, UserRound } from 'lucide-react'
 import { getCtx, loadViewers } from '@/lib/data'
 import { addViewer, removeViewer, updateName } from '@/lib/actions'
-import { signOut } from '@/lib/auth-actions'
+import { LogoutButton } from '@/components/LogoutButton'
 import { PageHead } from '@/components/PageHead'
 import { SheetSync } from '@/components/SheetSync'
 import { sheetsEnabled } from '@/lib/sheets'
@@ -25,7 +25,7 @@ export default async function Pengaturan() {
             <p className="hint">Masuk sebagai {ctx.email}</p>
             <div className="cluster"><Submit className="btn small">Simpan nama</Submit></div>
           </QuickForm>
-          <form action={signOut} style={{ marginTop: 'var(--space-4)' }}><button className="btn ghost small" type="submit">Keluar</button></form>
+          <div style={{ marginTop: 'var(--space-4)' }}><LogoutButton /></div>
         </section>
 
         <section className="tile s6" style={{ ['--i' as string]: 1 }} aria-labelledby="h-pantau">

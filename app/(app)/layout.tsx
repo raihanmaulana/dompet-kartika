@@ -1,7 +1,6 @@
 import Link from 'next/link'
-import { LogOut } from 'lucide-react'
 import { getCtx } from '@/lib/data'
-import { signOut } from '@/lib/auth-actions'
+import { LogoutButton } from '@/components/LogoutButton'
 import { RailNav, TabBar } from '@/components/Nav'
 import { OwnerSwitch } from '@/components/OwnerSwitch'
 import { Mark } from '@/components/Mark'
@@ -21,7 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="rail-foot">
           <OwnerSwitch owners={ctx.owners} current={ctx.ownerId} me={ctx.userId} />
           <div className="who"><strong>{ctx.owners.find((o) => o.id === ctx.userId)?.nama}</strong>{ctx.email}</div>
-          <form action={signOut}><button className="btn ghost small full" type="submit"><LogOut aria-hidden /> Keluar</button></form>
+          <LogoutButton className="btn ghost small full" icon />
         </div>
       </aside>
       <div>
