@@ -34,6 +34,7 @@
   --color-tone-butter: oklch(96.5% 0.05 95);
   --color-tone-butter-deep: oklch(90% 0.09 95);
   --color-tone-rose-deep: oklch(86% 0.08 5);
+  --color-tear: oklch(84% 0.08 235);
   --color-shadow: oklch(60% 0.12 5 / 0.38);
 
   /* type */
