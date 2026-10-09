@@ -1,5 +1,6 @@
+import { TileTitle } from '@/components/TileTitle'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { HeartPulse, History, PenLine, Plus, Receipt, Waypoints } from 'lucide-react'
 import { getCtx, loadMonth } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
 import { addExpense } from '@/lib/actions'
@@ -75,7 +76,7 @@ export default async function Beranda() {
         </section>
 
         <section className="tile s5" style={{ ['--i' as string]: 1 }} aria-labelledby="h-catat">
-          <div className="tile-head"><h2 className="tile-title" id="h-catat">Catat pengeluaran</h2></div>
+          <div className="tile-head"><TileTitle id="h-catat" icon={PenLine}>Catat pengeluaran</TileTitle></div>
           {ctx.canEdit ? (
             <QuickForm action={addExpense} className="stack">
               <div className="form-grid">
@@ -95,7 +96,7 @@ export default async function Beranda() {
         </section>
 
         <section className="tile s6" style={{ ['--i' as string]: 2 }} aria-labelledby="h-alur">
-          <div className="tile-head"><h2 className="tile-title" id="h-alur">Uang masuk, lalu ke mana</h2><Link className="link" href="/anggaran">Anggaran</Link></div>
+          <div className="tile-head"><TileTitle id="h-alur" icon={Waypoints}>Uang masuk, lalu ke mana</TileTitle><Link className="link" href="/anggaran">Anggaran</Link></div>
           <ul className="rows">
             <li><span className="grow name">Pemasukan bersih</span><span className="amt">{rp(s.bersih)}</span></li>
             <li><span className="grow"><span className="name">Tagihan rutin</span></span><span className="amt minus">−{rp(s.tagihanBiasa)}</span></li>
@@ -107,7 +108,7 @@ export default async function Beranda() {
         </section>
 
         <section className="tile col s6" style={{ ['--i' as string]: 3 }} aria-labelledby="h-cek">
-          <div className="tile-head"><h2 className="tile-title" id="h-cek">Cek kesehatan uang</h2><span className="tile-note">dari pemasukan bersih</span></div>
+          <div className="tile-head"><TileTitle id="h-cek" icon={HeartPulse}>Cek kesehatan uang</TileTitle><span className="tile-note">dari pemasukan bersih</span></div>
           <div className="gauges">
             <Gauge name="Kebutuhan + tagihan" value={s.rasio.butuh} goal={0.5} kind="max" text="Targetnya maksimal 50%" />
             <Gauge name="Gaya hidup" value={s.rasio.gaya} goal={0.3} kind="max" text="Targetnya maksimal 30%" />
@@ -118,7 +119,7 @@ export default async function Beranda() {
         </section>
 
         <section className="tile s6" style={{ ['--i' as string]: 4 }} aria-labelledby="h-tagih">
-          <div className="tile-head"><h2 className="tile-title" id="h-tagih">Tagihan belum dibayar</h2><Link className="link" href="/tagihan">Semua</Link></div>
+          <div className="tile-head"><TileTitle id="h-tagih" icon={Receipt}>Tagihan belum dibayar</TileTitle><Link className="link" href="/tagihan">Semua</Link></div>
           {unpaid.length ? (
             <ul className="rows">
               {unpaid.slice(0, 5).map((r) => {
@@ -137,7 +138,7 @@ export default async function Beranda() {
         </section>
 
         <section className="tile s6" style={{ ['--i' as string]: 5 }} aria-labelledby="h-terakhir">
-          <div className="tile-head"><h2 className="tile-title" id="h-terakhir">Catatan terakhir</h2><Link className="link" href="/catatan">Semua</Link></div>
+          <div className="tile-head"><TileTitle id="h-terakhir" icon={History}>Catatan terakhir</TileTitle><Link className="link" href="/catatan">Semua</Link></div>
           {data.expenses.length ? (
             <ul className="rows">
               {data.expenses.slice(0, 5).map((e) => (

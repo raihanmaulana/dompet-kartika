@@ -27,6 +27,13 @@
   --color-warn-ink: oklch(42% 0.09 80);
   --color-over: oklch(55% 0.19 25);
   --color-over-soft: oklch(94% 0.04 25);
+  --color-tone-peach: oklch(95.5% 0.04 55);
+  --color-tone-peach-deep: oklch(88% 0.08 55);
+  --color-tone-lilac: oklch(95% 0.03 310);
+  --color-tone-lilac-deep: oklch(88% 0.06 310);
+  --color-tone-butter: oklch(96.5% 0.05 95);
+  --color-tone-butter-deep: oklch(90% 0.09 95);
+  --color-tone-rose-deep: oklch(86% 0.08 5);
   --color-shadow: oklch(60% 0.12 5 / 0.38);
 
   /* type */

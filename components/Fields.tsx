@@ -1,5 +1,6 @@
 'use client'
-import { useRef, useState, useTransition, type ReactNode } from 'react'
+import { useBusyTransition, useBusyFlag } from './Busy'
+import { useRef, useState, type ReactNode } from 'react'
 import { Trash2 } from 'lucide-react'
 import { useFormStatus } from 'react-dom'
 
@@ -30,7 +31,7 @@ export function InlineField({ id, field, value, action, money = false, disabled,
   const initial = money ? fmt(String(value)) : String(value)
   const [v, setV] = useState(initial)
   const [saved, setSaved] = useState(initial)
-  const [pending, start] = useTransition()
+  const [pending, start] = useBusyTransition()
   const commit = () => {
     if (v === saved) return
     setSaved(v)
@@ -49,7 +50,7 @@ export function InlineField({ id, field, value, action, money = false, disabled,
 export function ActionButton({ action, args, label, icon = true, text, className = 'btn icon' }: {
   action: (...a: any[]) => Promise<void>; args: unknown[]; label: string; icon?: boolean; text?: string; className?: string
 }) {
-  const [pending, start] = useTransition()
+  const [pending, start] = useBusyTransition()
   return (
     <button type="button" className={className} aria-label={label} title={label} aria-busy={pending} disabled={pending}
       onClick={() => start(() => action(...args))}>
@@ -60,6 +61,7 @@ export function ActionButton({ action, args, label, icon = true, text, className
 
 export function Submit({ children, className = 'btn', pendingText = 'Menyimpan…' }: { children: ReactNode; className?: string; pendingText?: string }) {
   const { pending } = useFormStatus()
+  useBusyFlag(pending)
   return <button type="submit" className={className} aria-busy={pending} disabled={pending}>{pending ? pendingText : children}</button>
 }
 
@@ -79,7 +81,7 @@ export function Toggle({ checked, label, action, args, disabled }: {
   checked: boolean; label: string; action: (...a: any[]) => Promise<void>; args: unknown[]; disabled?: boolean
 }) {
   const [on, setOn] = useState(checked)
-  const [, start] = useTransition()
+  const [, start] = useBusyTransition()
   return (
     <input type="checkbox" className="check" aria-label={label} checked={on} disabled={disabled}
       onChange={(e) => { const n = e.target.checked; setOn(n); start(() => action(...args, n)) }} />

@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react'
+import { TileTitle } from '@/components/TileTitle'
+import { ListChecks, Plus, Target } from 'lucide-react'
 import { getCtx, loadMonth } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
 import { addExpense, deleteExpense } from '@/lib/actions'
@@ -30,7 +31,7 @@ export default async function Catatan() {
       <PageHead ctx={ctx} title="Catatan" sub={`Pengeluaran ${ymLabel(ctx.ym)}: ${rp(s.spent)} · sisa jatah ${rp(s.sisaJatah)}`} />
       <div className="bento">
         <section className="tile s7" style={{ ['--i' as string]: 0 }} aria-labelledby="h-list">
-          <div className="tile-head"><h2 className="tile-title" id="h-list">Semua catatan</h2><span className="tile-note">{data.expenses.length} catatan</span></div>
+          <div className="tile-head"><TileTitle id="h-list" icon={ListChecks}>Semua catatan</TileTitle><span className="tile-note">{data.expenses.length} catatan</span></div>
           {data.expenses.length ? (
             <div className="stack" style={{ gap: 'var(--space-5)' }}>
               {[...byDay.entries()].map(([day, list]) => (
@@ -55,7 +56,7 @@ export default async function Catatan() {
         <div className="stack col5">
           {ctx.canEdit ? (
             <section className="tile" style={{ ['--i' as string]: 1 }} aria-labelledby="h-baru">
-              <div className="tile-head"><h2 className="tile-title" id="h-baru">Catat baru</h2></div>
+              <div className="tile-head"><TileTitle id="h-baru" icon={Plus}>Catat baru</TileTitle></div>
               <QuickForm action={addExpense} className="stack">
                 <div className="form-grid">
                   <label className="field full"><span>Berapa?</span><MoneyInput name="amount" label="Jumlah pengeluaran" required /></label>
@@ -74,7 +75,7 @@ export default async function Catatan() {
           ) : null}
 
           <section className="tile" style={{ ['--i' as string]: 2 }} aria-labelledby="h-pos">
-            <div className="tile-head"><h2 className="tile-title" id="h-pos">Per pos</h2></div>
+            <div className="tile-head"><TileTitle id="h-pos" icon={Target}>Per pos</TileTitle></div>
             <ul className="rows">
               {pos.map((p) => {
                 const used = s.spentByItem[p.id] ?? 0

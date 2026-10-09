@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react'
+import { TileTitle } from '@/components/TileTitle'
+import { Eye, Plus, UserRound } from 'lucide-react'
 import { getCtx, loadViewers } from '@/lib/data'
 import { addViewer, removeViewer, updateName } from '@/lib/actions'
 import { signOut } from '@/lib/auth-actions'
@@ -16,7 +17,7 @@ export default async function Pengaturan() {
       <PageHead ctx={ctx} title="Pengaturan" month={false} />
       <div className="bento">
         <section className="tile s6" style={{ ['--i' as string]: 0 }} aria-labelledby="h-akun">
-          <div className="tile-head"><h2 className="tile-title" id="h-akun">Akunku</h2></div>
+          <div className="tile-head"><TileTitle id="h-akun" icon={UserRound}>Akunku</TileTitle></div>
           <QuickForm action={updateName} className="stack" resetOnDone={false}>
             <label className="field"><span>Nama panggilan</span><input className="input" name="nama" defaultValue={mine?.nama ?? ''} required maxLength={40} /></label>
             <p className="hint">Masuk sebagai {ctx.email}</p>
@@ -26,7 +27,7 @@ export default async function Pengaturan() {
         </section>
 
         <section className="tile s6" style={{ ['--i' as string]: 1 }} aria-labelledby="h-pantau">
-          <div className="tile-head"><h2 className="tile-title" id="h-pantau">Boleh dipantau oleh</h2></div>
+          <div className="tile-head"><TileTitle id="h-pantau" icon={Eye}>Boleh dipantau oleh</TileTitle></div>
           <p className="hint" style={{ marginBottom: 'var(--space-4)' }}>Orang di daftar ini bisa melihat semua datamu setelah masuk dengan email tersebut, tapi tidak bisa mengubahnya.</p>
           {viewers.length ? (
             <ul className="rows">

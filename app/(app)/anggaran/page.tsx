@@ -1,5 +1,6 @@
+import { TileTitle } from '@/components/TileTitle'
 import Link from 'next/link'
-import { Plus } from 'lucide-react'
+import { Banknote, Calculator, Home, PiggyBank, Plus, Sparkle, TrendingUp } from 'lucide-react'
 import { getCtx, loadMonth } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { addBudget, addIncome, deleteBudget, deleteIncome, updateBudget, updateIncome } from '@/lib/actions'
@@ -17,6 +18,8 @@ const GROUPS: { grp: Grp; title: string; note: string; ph: string }[] = [
   { grp: 'investasi', title: 'Investasi', note: 'Reksa dana, SBN, emas', ph: 'mis. Reksa dana' },
 ]
 
+const GROUP_ICONS = { kebutuhan: Home, gaya_hidup: Sparkle, tabungan: PiggyBank, investasi: TrendingUp } as const
+
 export default async function Anggaran() {
   const ctx = await getCtx()
   const data = await loadMonth(ctx)
@@ -33,7 +36,7 @@ export default async function Anggaran() {
       <PageHead ctx={ctx} title="Anggaran" sub={`Khusus ${ymLabel(ctx.ym)}. Mengubah angka di sini tidak mengubah bulan lain.`} />
       <div className="bento">
         <section className="tile s6" style={{ ['--i' as string]: 0 }} aria-labelledby="h-masuk">
-          <div className="tile-head"><h2 className="tile-title" id="h-masuk">Pemasukan</h2><span className="tile-note">bersih {rp(s.bersih)}</span></div>
+          <div className="tile-head"><TileTitle id="h-masuk" icon={Banknote}>Pemasukan</TileTitle><span className="tile-note">bersih {rp(s.bersih)}</span></div>
           <ul className="rows">
             {data.income.map((i) => (
               <li key={i.id} className="row">
@@ -56,7 +59,7 @@ export default async function Anggaran() {
         </section>
 
         <section className="tile blush s6" style={{ ['--i' as string]: 1 }} aria-labelledby="h-hasil">
-          <div className="tile-head"><h2 className="tile-title" id="h-hasil">Hasil akhir bulan ini</h2></div>
+          <div className="tile-head"><TileTitle id="h-hasil" icon={Calculator}>Hasil akhir bulan ini</TileTitle></div>
           <ul className="rows">
             <li><span className="grow name">Pemasukan bersih</span><span className="amt">{rp(s.bersih)}</span></li>
             <li><span className="grow"><span className="name">Tagihan, cicilan, hutang</span><span className="meta">Otomatis dari <Link className="link" href="/tagihan">halaman Tagihan</Link> · {pctOf(s.tagihan)}</span></span><span className="amt minus">−{rp(s.tagihan)}</span></li>
@@ -74,7 +77,7 @@ export default async function Anggaran() {
           const items = data.budget.filter((b) => b.grp === g.grp)
           return (
             <section key={g.grp} className="tile s6" style={{ ['--i' as string]: idx + 2 }} aria-labelledby={`h-${g.grp}`}>
-              <div className="tile-head"><div><h2 className="tile-title" id={`h-${g.grp}`}>{g.title}</h2><p className="tile-note">{g.note}</p></div>
+              <div className="tile-head"><div><TileTitle id={`h-${g.grp}`} icon={GROUP_ICONS[g.grp]}>{g.title}</TileTitle><p className="tile-note">{g.note}</p></div>
                 <span className="chip">{rp(s.grp[g.grp])} · {pctOf(s.grp[g.grp])}</span></div>
               <ul className="rows">
                 {items.map((b) => (

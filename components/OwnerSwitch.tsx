@@ -1,9 +1,9 @@
 'use client'
-import { useTransition } from 'react'
+import { useBusyTransition, useBusyFlag } from './Busy'
 import { setViewAs } from '@/lib/actions'
 
 export function OwnerSwitch({ owners, current, me }: { owners: { id: string; nama: string }[]; current: string; me: string }) {
-  const [pending, start] = useTransition()
+  const [pending, start] = useBusyTransition()
   if (owners.length < 2) return null
   return (
     <label className="field">

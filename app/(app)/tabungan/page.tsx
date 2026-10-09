@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react'
+import { TileTitle } from '@/components/TileTitle'
+import { CalendarCheck, PiggyBank, Plus, Sparkles } from 'lucide-react'
 import { getCtx, loadGoals, loadMonth } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { addDeposit, addGoal, deleteDeposit, deleteGoal, updateGoalTarget } from '@/lib/actions'
@@ -35,7 +36,7 @@ export default async function Tabungan() {
         </section>
 
         <section className="tile s5" style={{ ['--i' as string]: 1 }} aria-labelledby="h-rencana">
-          <div className="tile-head"><h2 className="tile-title" id="h-rencana">Bulan ini</h2></div>
+          <div className="tile-head"><TileTitle id="h-rencana" icon={CalendarCheck}>Bulan ini</TileTitle></div>
           <ul className="rows">
             <li><span className="grow name">Rencana tabungan</span><span className="amt">{rp(s.grp.tabungan)}</span></li>
             <li><span className="grow name">Sudah disetor</span><span className="amt">{rp(monthDeposit)}</span></li>
@@ -50,7 +51,7 @@ export default async function Tabungan() {
           return (
             <section key={g.id} className="tile s6" style={{ ['--i' as string]: idx + 2 }} aria-labelledby={`g-${g.id}`}>
               <div className="tile-head">
-                <h2 className="tile-title" id={`g-${g.id}`}>{g.name}</h2>
+                <TileTitle id={`g-${g.id}`} icon={PiggyBank}>{g.name}</TileTitle>
                 {g.is_emergency ? <span className="chip ok">Dana darurat</span> : null}
               </div>
               <p className="big" style={{ fontSize: '2.1rem' }}>{rp(sd)}</p>
@@ -85,7 +86,7 @@ export default async function Tabungan() {
 
         {!ro ? (
           <section className="tile s6 plain" style={{ ['--i' as string]: goals.length + 2 }} aria-labelledby="h-goal-baru">
-            <div className="tile-head"><h2 className="tile-title" id="h-goal-baru">Target baru</h2></div>
+            <div className="tile-head"><TileTitle id="h-goal-baru" icon={Sparkles}>Target baru</TileTitle></div>
             <QuickForm action={addGoal} className="stack">
               <div className="form-grid">
                 <label className="field full"><span>Nama</span><input className="input" name="name" required maxLength={60} placeholder="mis. Liburan atau Dana darurat" /></label>

@@ -1,10 +1,12 @@
 'use client'
 import { useActionState, useState } from 'react'
+import { useBusyFlag } from './Busy'
 import { signIn, signUp, type AuthState } from '@/lib/auth-actions'
 
 export function AuthForm() {
   const [mode, setMode] = useState<'masuk' | 'daftar'>('masuk')
   const [st, act, pending] = useActionState<AuthState, FormData>(mode === 'masuk' ? signIn : signUp, null)
+  useBusyFlag(pending)
   return (
     <div className="auth-card">
       <div className="seg" role="group" aria-label="Masuk atau daftar">

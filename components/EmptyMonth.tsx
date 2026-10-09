@@ -11,7 +11,7 @@ export async function EmptyMonth({ ctx }: { ctx: Ctx }) {
   return (
     <section className="tile s12 plain" style={{ ['--i' as string]: 0 }}>
       <div className="empty">
-        <Mark className="mark-lg" />
+        <Mark className="mark-sm" animated />
         <h2>{ymLabel(ctx.ym)} masih kosong</h2>
         {ctx.canEdit ? (
           <>

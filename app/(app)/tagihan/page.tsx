@@ -1,4 +1,5 @@
-import { Plus } from 'lucide-react'
+import { TileTitle } from '@/components/TileTitle'
+import { ListChecks, Plus } from 'lucide-react'
 import { getCtx, loadMonth } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { addBill, changeBillFrom, setBillAmountThisMonth, setBillPaid, setBillSkipped, stopBill } from '@/lib/actions'
@@ -38,7 +39,7 @@ export default async function Tagihan() {
 
         {ctx.canEdit ? (
           <section className="tile s7" style={{ ['--i' as string]: 1 }} aria-labelledby="h-tambah">
-            <div className="tile-head"><h2 className="tile-title" id="h-tambah">Tambah tagihan atau hutang</h2></div>
+            <div className="tile-head"><TileTitle id="h-tambah" icon={Plus}>Tambah tagihan atau hutang</TileTitle></div>
             <QuickForm action={addBill} className="stack">
               <div className="form-grid">
                 <label className="field full"><span>Nama</span><input className="input" name="name" required maxLength={80} placeholder="mis. Cicilan HP atau Pinjam ke teman" /></label>
@@ -59,7 +60,7 @@ export default async function Tagihan() {
         ) : null}
 
         <section className="tile s12" style={{ ['--i' as string]: 2 }} aria-labelledby="h-daftar">
-          <div className="tile-head"><h2 className="tile-title" id="h-daftar">Daftar {ymLabel(ctx.ym)}</h2><span className="tile-note">{rows.length} item</span></div>
+          <div className="tile-head"><TileTitle id="h-daftar" icon={ListChecks}>Daftar {ymLabel(ctx.ym)}</TileTitle><span className="tile-note">{rows.length} item</span></div>
           {rows.length ? (
             <ul className="rows">
               {rows.map((r) => {
