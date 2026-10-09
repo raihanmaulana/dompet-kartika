@@ -1,5 +1,5 @@
 /**
- * Dompet Kartika → Google Sheet (sinkron satu arah, hanya menerima kiriman dari aplikasi).
+ * Wallet Together → Google Sheet (sinkron satu arah, hanya menerima kiriman dari aplikasi).
  *
  * CARA PASANG:
  * 1. Buka Google Sheet kosong → menu Ekstensi → Apps Script.
@@ -27,7 +27,7 @@ const RP = '"Rp"#,##0;-"Rp"#,##0'
 const TABS = {
   'Ringkasan Bulanan': { h: ['Kode bulan', 'Bulan', 'Gaji dan uang masuk', 'Potongan', 'Pemasukan bersih', 'Tagihan rutin', 'Cicilan dan hutang', 'Kebutuhan pokok', 'Gaya hidup', 'Tabungan', 'Investasi', 'Uang belanja', 'Pengeluaran tercatat', 'Sisa jatah'], text: [1], money: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14] },
   'Sumber Dana': { h: ['Id', 'Nama', 'Jenis', 'Saldo awal', 'Saldo sekarang'], text: [1], money: [4, 5] },
-  'Pindah Dana': { h: ['Id', 'Tanggal', 'Dari', 'Ke', 'Jumlah', 'Catatan'], text: [1, 2], money: [5] },
+  'Pindah Dana': { h: ['Id', 'Tanggal', 'Dari', 'Ke', 'Jumlah', 'Catatan', 'Biaya admin'], text: [1, 2], money: [5, 7] },
   'Pemasukan': { h: ['Id', 'Bulan', 'Nama', 'Jenis', 'Nominal', 'Sumber dana'], text: [1, 2], money: [5] },
   'Anggaran': { h: ['Id', 'Bulan', 'Kelompok', 'Kategori', 'Jatah'], text: [1, 2], money: [5] },
   'Catatan': { h: ['Id', 'Bulan', 'Tanggal', 'Kategori', 'Catatan', 'Nominal', 'Sumber dana'], text: [1, 2, 3], money: [6] },
@@ -76,7 +76,7 @@ function json_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON)
 }
 
-function doGet() { return json_({ ok: true, info: 'Dompet Kartika siap menerima kiriman.' }) }
+function doGet() { return json_({ ok: true, info: 'Wallet Together siap menerima kiriman.' }) }
 
 function doPost(e) {
   const lock = LockService.getScriptLock()

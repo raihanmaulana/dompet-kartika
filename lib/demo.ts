@@ -51,5 +51,5 @@ export const demoPockets: Pocket[] = [
   { id: 'p4', name: 'Dompet tunai', kind: 'tunai', opening_balance: 150_000, sort: 3 },
 ]
 export const demoTransfers: Transfer[] = [
-  { id: 't1', from_pocket: 'p1', to_pocket: 'p3', amount: 300_000, moved_on: '2026-10-03', note: 'Isi saldo untuk jajan' },
+  { id: 't1', from_pocket: 'p1', to_pocket: 'p3', amount: 300_000, fee: 2_500, moved_on: '2026-10-03', note: 'Isi saldo untuk jajan' },
 ]

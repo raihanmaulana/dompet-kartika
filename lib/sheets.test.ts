@@ -48,7 +48,7 @@ test('baris & ringkasan dari database', async () => {
   assert.equal(pk.cells[1], 'BCA')
   assert.equal(pk.cells[4], 1000000 + 6500000 - 300000) // saldo awal + gaji − pindah (hari ini 2026-10 ke atas bergantung jam; lihat catatan)
   const tf = (await rowEvent(sb, 'pocket_transfers', 't1')) as any
-  assert.deepEqual(tf.cells, ['t1', '2026-10-05', 'BCA', 'GoPay', 300000, 'isi saldo'])
+  assert.deepEqual(tf.cells, ['t1', '2026-10-05', 'BCA', 'GoPay', 300000, 'isi saldo', 0])
   const st = (await rowEvent(sb, 'bill_months', '', 'l1|2026-10')) as any
   assert.equal(st.cells[3], 175000)
   assert.equal(st.cells[5], 'Lunas')

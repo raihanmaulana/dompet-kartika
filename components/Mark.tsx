@@ -2,10 +2,10 @@
 export function Mark({ className, animated = false }: { className?: string; animated?: boolean }) {
   return (
     <svg className={`${className ?? ''} ${animated ? 'hop' : ''}`} viewBox="0 0 48 48" aria-hidden="true">
-      <rect x="5" y="12" width="38" height="28" rx="10" fill="var(--color-accent)" />
-      <path d="M9 17c0-3 2.4-5 5.4-5H33" fill="none" stroke="var(--color-ink)" strokeWidth="2.4" strokeLinecap="round" />
-      <rect x="27" y="22" width="16" height="10" rx="5" fill="var(--color-surface)" stroke="var(--color-ink)" strokeWidth="2.4" />
-      <path className="heart" d="M33.2 28.4c-1.7-1.1-2.6-1.9-2.6-3a1.5 1.5 0 0 1 2.6-.9 1.5 1.5 0 0 1 2.6.9c0 1.1-.9 1.9-2.6 3Z" fill="var(--color-accent-deep)" />
+      <circle cx="39" cy="9" r="5.5" fill="var(--color-warn)" stroke="var(--color-ink)" strokeWidth="2.2" />
+      <rect x="4" y="8" width="40" height="36" rx="13" fill="var(--color-accent)" stroke="var(--color-ink)" strokeWidth="2.4" />
+      <path d="M10 18l4.2 15 4.8-10.5L23.800 33 28 18" fill="none" stroke="var(--color-ink)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M29.500 18H41M35.300 18v15.500" fill="none" stroke="var(--color-surface)" strokeWidth="3.2" strokeLinecap="round" />
     </svg>
   )
 }

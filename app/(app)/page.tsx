@@ -98,7 +98,7 @@ export default async function Beranda() {
         </section>
 
         <section className="tile s6" style={{ ['--i' as string]: 2 }} aria-labelledby="h-alur">
-          <div className="tile-head"><TileTitle id="h-alur" icon={Waypoints}>Uang masuk, lalu ke mana</TileTitle><Link className="link" href="/anggaran">Anggaran</Link></div>
+          <div className="tile-head"><TileTitle id="h-alur" icon={Waypoints}>Distribusi Utama</TileTitle><Link className="link" href="/anggaran">Anggaran</Link></div>
           <ul className="rows">
             <li><span className="grow name">Pemasukan bersih</span><span className="amt">{rp(s.bersih)}</span></li>
             <li><span className="grow"><span className="name">Tagihan rutin</span></span><span className="amt minus">−{rp(s.tagihanBiasa)}</span></li>

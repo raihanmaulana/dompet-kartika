@@ -418,3 +418,9 @@ ul.rows { margin: 0; padding: 0; }
 .rb.c0 { background: var(--color-accent); } .rb.c1 { background: var(--color-warn); } .rb.c2 { background: var(--color-ok); } .rb.c3 { background: var(--color-tone-lilac-deep); } .rb.c4 { background: var(--color-accent-deep); }
 @keyframes rainfall { 0% { transform: translate(0, 0) rotate(0); opacity: 1; } 85% { opacity: 1; } 100% { transform: translate(var(--dx), 105vh) rotate(var(--rot)); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .rain { display: none; } }
+
+/* ---------- v4: biaya admin & reset bulan ---------- */
+.fee-tag { display: inline-block; margin-left: var(--space-2); padding: 1px 9px; border-radius: var(--radius-pill); background: var(--color-warn-soft); color: var(--color-warn-ink); font-size: var(--text-xs); font-weight: 700; vertical-align: middle; }
+.btn.danger-ghost { color: var(--color-over); border-color: var(--color-over); background: transparent; }
+.btn.danger-ghost:hover { background: var(--color-over-soft); border-color: var(--color-over); }
+.title-row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }

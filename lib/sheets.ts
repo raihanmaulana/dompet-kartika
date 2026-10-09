@@ -115,7 +115,7 @@ export async function rowEvent(sb: SupabaseClient, table: Table, id: string, key
     }
     case 'pocket_transfers': {
       const [a, b] = await Promise.all([pocketName(sb, r.from_pocket), pocketName(sb, r.to_pocket)])
-      return { op: 'upsert', tab, id, cells: [id, r.moved_on, a, b, Number(r.amount), r.note] }
+      return { op: 'upsert', tab, id, cells: [id, r.moved_on, a, b, Number(r.amount), r.note, Number(r.fee ?? 0)] }
     }
   }
 }

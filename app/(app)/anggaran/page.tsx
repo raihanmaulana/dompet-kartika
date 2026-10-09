@@ -3,9 +3,10 @@ import Link from 'next/link'
 import { Banknote, Calculator, Home, PiggyBank, Plus, Sparkle, TrendingUp } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
-import { addBudget, addIncome, deleteBudget, deleteIncome, updateBudget, updateIncome } from '@/lib/actions'
+import { addBudget, addIncome, deleteBudget, deleteIncome, resetMonth, updateBudget, updateIncome } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
+import { ConfirmButton } from '@/components/ConfirmButton'
 import { PocketSelect } from '@/components/PocketSelect'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 import type { Grp } from '@/lib/types'
@@ -35,14 +36,17 @@ export default async function Anggaran() {
 
   return (
     <>
-      <PageHead ctx={ctx} title="Anggaran" sub={`Khusus ${ymLabel(ctx.ym)}. Mengubah angka di sini tidak mengubah bulan lain.`} />
+      <PageHead ctx={ctx} title="Anggaran" sub={`Khusus ${ymLabel(ctx.ym)}. Mengubah angka di sini tidak mengubah bulan lain.`}
+        actions={!ro ? <ConfirmButton action={resetMonth} args={[ctx.ym]} trigger="Reset bulan" confirmText="Ya, reset semua" className="btn small ghost danger-ghost"
+          title={`Reset ${ymLabel(ctx.ym)}?`}
+          message={`Semua data ${ymLabel(ctx.ym)} dihapus sampai kosong: pemasukan, anggaran, catatan pengeluaran, setoran tabungan, status tagihan, dan pindah dana. Tagihan yang dibuat di bulan sebelumnya tetap ada. Tidak bisa dibatalkan.`} /> : null} />
       <div className="bento">
         <section className="tile s6" style={{ ['--i' as string]: 0 }} aria-labelledby="h-masuk">
           <div className="tile-head"><TileTitle id="h-masuk" icon={Banknote}>Pemasukan</TileTitle><span className="tile-note">bersih {rp(s.bersih)}</span></div>
           <ul className="rows">
             {data.income.map((i) => (
-              <li key={i.id} className="row">
-                <span className="grow"><InlineField id={i.id} field="label" value={i.label} action={updateIncome} label="Nama pemasukan" disabled={ro} />
+              <li key={i.id} className="row wrap">
+                <span className="grow" style={{ minWidth: '12rem' }}><InlineField id={i.id} field="label" value={i.label} action={updateIncome} label="Nama pemasukan" disabled={ro} />
                   <span className="meta" style={{ paddingLeft: 8 }}>{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{pk(i.pocket_id) ? ` · ${pk(i.pocket_id)}` : ''}</span></span>
                 <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={i.id} field="amount" value={i.amount} money action={updateIncome} label={`Nominal ${i.label}`} disabled={ro} /></span>
                 {!ro ? <ActionButton action={deleteIncome} args={[i.id]} label={`Hapus ${i.label}`} /> : null}

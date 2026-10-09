@@ -111,11 +111,11 @@ test('pocketBalances menghitung saldo tiap sumber dana', async () => {
     ],
     [{ spent_on: '2026-10-02', amount: 35_000, pocket_id: 'b' }, { spent_on: '2026-10-20', amount: 1, pocket_id: 'b' }],
     [{ ym: '2026-10', amount: 1_000_000, pocket_id: 'a' }, { ym: '2026-10', amount: -200_000, pocket_id: 'a' }],
-    [{ id: 't', from_pocket: 'a', to_pocket: 'b', amount: 300_000, moved_on: '2026-10-05', note: '' }],
+    [{ id: 't', from_pocket: 'a', to_pocket: 'b', amount: 300_000, fee: 2_500, moved_on: '2026-10-05', note: '' }],
     today,
   )
-  // BCA: 1.000.000 + 6.500.000 − 260.000 − 1.000.000 + 200.000 − 300.000 = 6.140.000
-  assert.equal(r[0].saldo, 6_140_000)
+  // BCA: 1.000.000 + 6.500.000 − 260.000 − 1.000.000 + 200.000 − 300.000 − 2.500 (biaya admin) = 6.137.500
+  assert.equal(r[0].saldo, 6_137_500)
   // GoPay: −35.000 + 300.000 = 265.000
   assert.equal(r[1].saldo, 265_000)
 })

@@ -1,4 +1,4 @@
--- Dompet Kartika — fitur "Sumber dana" (bank, e-wallet, tunai).
+-- Wallet Together — fitur "Sumber dana" (bank, e-wallet, tunai).
 -- Jalankan sekali di Supabase → SQL Editor. Aman dijalankan ulang.
 
 create table if not exists public.pockets (
@@ -43,3 +43,8 @@ begin
     execute format('create policy "%1$s_write" on public.%1$s for all using (owner_id = auth.uid()) with check (owner_id = auth.uid())', t);
   end loop;
 end $$;
+
+-- Biaya admin pindah dana: dicatat di transfer yang sama, lalu otomatis muncul di Catatan pengeluaran.
+alter table public.pocket_transfers add column if not exists fee bigint not null default 0 check (fee >= 0);
+alter table public.expenses add column if not exists transfer_id uuid references public.pocket_transfers(id) on delete cascade;
+create index if not exists expenses_transfer_idx on public.expenses(transfer_id);

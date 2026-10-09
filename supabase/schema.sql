@@ -1,4 +1,4 @@
--- Dompet Kartika — skema database (jalankan sekali di Supabase → SQL Editor)
+-- Wallet Together — skema database (jalankan sekali di Supabase → SQL Editor)
 -- Semua data dikunci per pemilik (owner_id) dan per bulan (ym = 'YYYY-MM').
 
 create table if not exists public.profiles (

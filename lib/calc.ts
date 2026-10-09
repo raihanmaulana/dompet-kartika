@@ -188,7 +188,7 @@ export function goalPlan(goal: { name: string; is_emergency: boolean }, tabungan
 
 /**
  * Saldo tiap sumber dana (sampai hari ini):
- * saldo awal + uang masuk − potongan − pengeluaran − setoran tabungan (tarik = menambah) + pindah masuk − pindah keluar.
+ * saldo awal + uang masuk − potongan − pengeluaran − setoran tabungan (tarik = menambah) + pindah masuk − pindah keluar (termasuk biaya admin).
  * Hanya catatan yang punya sumber dana yang dihitung.
  */
 export function pocketBalances(
@@ -204,6 +204,6 @@ export function pocketBalances(
   for (const i of income) if (i.ym <= today.ym) add(i.pocket_id, i.kind === 'masuk' ? i.amount : -i.amount)
   for (const e of expenses) if (e.spent_on <= today.iso) add(e.pocket_id, -e.amount)
   for (const d of deposits) if (d.ym <= today.ym) add(d.pocket_id, -d.amount)
-  for (const t of transfers) if (t.moved_on <= today.iso) { add(t.from_pocket, -t.amount); add(t.to_pocket, t.amount) }
+  for (const t of transfers) if (t.moved_on <= today.iso) { add(t.from_pocket, -(t.amount + (t.fee ?? 0))); add(t.to_pocket, t.amount) }
   return pockets.map((p) => ({ ...p, saldo: bal.get(p.id) ?? 0 }))
 }

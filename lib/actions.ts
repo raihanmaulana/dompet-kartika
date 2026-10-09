@@ -472,17 +472,28 @@ export async function deletePocket(id: string) {
 }
 export async function addTransfer(formData: FormData) {
   const amount = money(formData.get('amount'))
+  const fee = money(formData.get('fee'))
   const moved_on = text(formData.get('moved_on'), 10)
-  if (amount <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(moved_on)) return
+  if (amount <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(moved_on) || !isYm(moved_on.slice(0, 7))) return
   const c = await me()
   if (!c) return done()
   const from = await pocketOf(c, formData.get('from_pocket'))
   const to = await pocketOf(c, formData.get('to_pocket'))
   if (!from || !to || from === to) return
-  const { data: row } = await c.sb.from('pocket_transfers').insert({ owner_id: c.uid, from_pocket: from, to_pocket: to, amount, moved_on, note: text(formData.get('note'), 80) }).select('id').single()
+  const { data: row } = await c.sb.from('pocket_transfers').insert({ owner_id: c.uid, from_pocket: from, to_pocket: to, amount, fee, moved_on, note: text(formData.get('note'), 80) }).select('id').single()
   if (row) {
     const names = await Promise.all([from, to].map(async (i) => ((await c.sb.from('pockets').select('name').eq('id', i).maybeSingle()).data?.name as string) ?? ''))
-    await mirror(c, [{ table: 'pocket_transfers', id: row.id }], 'Pindah dana', 'Pindah Dana', `${moved_on}: ${names[0]} → ${names[1]} ${fmtRp(amount)}`)
+    const items: { table: Table; id: string }[] = [{ table: 'pocket_transfers', id: row.id }]
+    // Biaya admin otomatis jadi pengeluaran di Catatan (satu transaksi: dikurangkan dari sumber lewat transfer, bukan lewat catatan ini).
+    if (fee > 0) {
+      const ym = moved_on.slice(0, 7)
+      const { data: ex } = await c.sb.from('expenses').insert({
+        owner_id: c.uid, ym, spent_on: moved_on, budget_item_id: null, amount: fee, pocket_id: null, transfer_id: row.id,
+        note: `Biaya admin: ${names[0]} → ${names[1]}`,
+      }).select('id').single()
+      if (ex) items.push({ table: 'expenses', id: ex.id })
+    }
+    await mirror(c, items, 'Pindah dana', 'Pindah Dana', `${moved_on}: ${names[0]} → ${names[1]} ${fmtRp(amount)}${fee > 0 ? `, biaya admin ${fmtRp(fee)}` : ''}`, [moved_on.slice(0, 7)])
   }
   done()
 }
@@ -490,8 +501,38 @@ export async function deleteTransfer(id: string) {
   const c = await me()
   if (!c) return done()
   const old = await prev(c, 'pocket_transfers' as Table, id)
+  const { data: fx } = await c.sb.from('expenses').select('id').eq('owner_id', c.uid).eq('transfer_id', id)
   await c.sb.from('pocket_transfers').delete().eq('id', id).eq('owner_id', c.uid)
-  if (old) await mirror(c, [{ table: 'pocket_transfers', id }], 'Hapus', 'Pindah Dana', `${old.moved_on}: pindah dana ${fmtRp(Number(old.amount))} dibatalkan`)
+  if (old) await mirror(c, [{ table: 'pocket_transfers', id }, ...(fx ?? []).map((r) => ({ table: 'expenses' as Table, id: r.id as string }))], 'Hapus', 'Pindah Dana',
+    `${old.moved_on}: pindah dana ${fmtRp(Number(old.amount))} dibatalkan`, [String(old.moved_on).slice(0, 7)])
+  done()
+}
+
+// ---------- Reset bulan ----------
+/** Hapus SEMUA data satu bulan: pemasukan, anggaran, catatan, setoran tabungan, status tagihan, pindah dana,
+ *  dan tagihan yang mulai dibuat di bulan itu. Tagihan dari bulan sebelumnya tetap ada (berlaku lintas bulan). */
+export async function resetMonth(ym: string) {
+  if (!isYm(ym)) return
+  const c = await me()
+  if (!c) return done()
+  const { sb, uid } = c
+  const first = `${ym}-01`
+  const next = `${ymAdd(ym, 1)}-01`
+  const [{ data: tr }, { data: bl }] = await Promise.all([
+    sb.from('pocket_transfers').select('id').eq('owner_id', uid).gte('moved_on', first).lt('moved_on', next),
+    sb.from('bills').select('id').eq('owner_id', uid).eq('start_ym', ym),
+  ])
+  const trIds = (tr ?? []).map((r) => r.id as string)
+  const blIds = (bl ?? []).map((r) => r.id as string)
+  await sb.from('pocket_transfers').delete().eq('owner_id', uid).gte('moved_on', first).lt('moved_on', next) // ikut menghapus catatan biaya admin-nya
+  for (const t of ['expenses', 'income_items', 'budget_items', 'goal_deposits', 'bill_months'] as const) await sb.from(t).delete().eq('owner_id', uid).eq('ym', ym)
+  if (blIds.length) await sb.from('bills').delete().eq('owner_id', uid).eq('start_ym', ym)
+  const extra: SheetEvent[] = ['Pemasukan', 'Anggaran', 'Catatan', 'Setoran Tabungan', 'Status Tagihan'].map((tab) => ({ op: 'deleteWhere', tab, col: 'Bulan', value: ym }) as SheetEvent)
+  for (const id of blIds) extra.push({ op: 'deleteWhere', tab: 'Status Tagihan', col: 'Id tagihan', value: id })
+  await mirror(c, [
+    ...trIds.map((id) => ({ table: 'pocket_transfers' as Table, id })),
+    ...blIds.map((id) => ({ table: 'bills' as Table, id })),
+  ], 'Reset bulan', 'Semua tab', `${ymLabel(ym)}: seluruh data bulan ini dihapus`, [ym], extra)
   done()
 }
 

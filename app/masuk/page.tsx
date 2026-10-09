@@ -6,7 +6,7 @@ export const metadata = { title: 'Masuk' }
 export default function Masuk() {
   return (
     <div className="auth">
-      <section className="auth-art" aria-label="Tentang Dompet Kartika">
+      <section className="auth-art" aria-label="Tentang Wallet Together">
         <InteractiveMascot />
         <div className="stack" style={{ gap: 'var(--space-5)' }}>
           <h1>Uang bulanan, rapi tiap bulan.</h1>

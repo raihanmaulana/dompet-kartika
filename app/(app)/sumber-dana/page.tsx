@@ -40,6 +40,7 @@ export default async function SumberDana() {
         {!ro && pockets.length > 1 ? (
           <section className="tile s7" style={{ ['--i' as string]: i++ }} aria-labelledby="h-pindah">
             <div className="tile-head"><TileTitle id="h-pindah" icon={ArrowLeftRight}>Pindah dana</TileTitle></div>
+            <p className="hint" style={{ marginBottom: 'var(--space-3)' }}>Biaya admin ikut dikurangkan dari sumber asal dan otomatis tercatat sebagai pengeluaran di Catatan.</p>
             <QuickForm action={addTransfer} className="stack">
               <div className="form-grid">
                 <label className="field"><span>Dari</span>
@@ -50,7 +51,8 @@ export default async function SumberDana() {
                 </label>
                 <label className="field"><span>Jumlah</span><MoneyInput name="amount" label="Jumlah dipindah" required /></label>
                 <label className="field"><span>Tanggal</span><input className="input" type="date" name="moved_on" defaultValue={ctx.today.iso} required /></label>
-                <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={80} placeholder="mis. isi saldo GoPay" /></label>
+                <label className="field"><span>Biaya admin (opsional)</span><MoneyInput name="fee" label="Biaya admin" /></label>
+                <label className="field"><span>Catatan</span><input className="input" name="note" maxLength={80} placeholder="mis. isi saldo GoPay" /></label>
               </div>
               <Submit className="btn"><ArrowLeftRight aria-hidden /> Pindahkan</Submit>
             </QuickForm>
@@ -111,7 +113,7 @@ export default async function SumberDana() {
             <ul className="rows">
               {transfers.slice(0, 20).map((t) => (
                 <li key={t.id}>
-                  <span className="grow"><span className="name">{name(t.from_pocket)} → {name(t.to_pocket)}</span><span className="meta">{tgl(t.moved_on)}{t.note ? ` · ${t.note}` : ''}</span></span>
+                  <span className="grow"><span className="name">{name(t.from_pocket)} → {name(t.to_pocket)}{t.fee ? <span className="fee-tag">Fee: {rp(t.fee)}</span> : null}</span><span className="meta">{tgl(t.moved_on)}{t.note ? ` · ${t.note}` : ''}</span></span>
                   <span className="amt">{rp(t.amount)}</span>
                   {!ro ? <ActionButton action={deleteTransfer} args={[t.id]} label="Batalkan pindah dana ini" /> : null}
                 </li>

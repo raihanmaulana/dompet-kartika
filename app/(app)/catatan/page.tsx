@@ -8,7 +8,7 @@ import { EmptyMonth } from '@/components/EmptyMonth'
 import { PocketSelect } from '@/components/PocketSelect'
 import { ActionButton, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
-export const metadata = { title: 'Catatan' }
+export const metadata = { title: 'Catatan Pengeluaran' }
 
 const tgl = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
 
@@ -19,7 +19,7 @@ export default async function Catatan() {
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   if (!data.income.length && !data.budget.length) {
-    return (<><PageHead ctx={ctx} title="Catatan" sub="Pengeluaran harian" /><div className="bento"><EmptyMonth ctx={ctx} /></div></>)
+    return (<><PageHead ctx={ctx} title="Catatan Pengeluaran" sub="Pengeluaran harian" /><div className="bento"><EmptyMonth ctx={ctx} /></div></>)
   }
   const pos = data.budget.filter((b) => b.grp === 'kebutuhan' || b.grp === 'gaya_hidup')
   const label = (id: string | null) => pos.find((p) => p.id === id)?.label
@@ -30,7 +30,7 @@ export default async function Catatan() {
 
   return (
     <>
-      <PageHead ctx={ctx} title="Catatan" sub={`Pengeluaran ${ymLabel(ctx.ym)}: ${rp(s.spent)} · sisa jatah ${rp(s.sisaJatah)}`} />
+      <PageHead ctx={ctx} title="Catatan Pengeluaran" sub={`Pengeluaran ${ymLabel(ctx.ym)}: ${rp(s.spent)} · sisa jatah ${rp(s.sisaJatah)}`} />
       <div className="bento">
         <section className="tile s7" style={{ ['--i' as string]: 0 }} aria-labelledby="h-list">
           <div className="tile-head"><TileTitle id="h-list" icon={ListChecks}>Semua catatan</TileTitle><span className="tile-note">{data.expenses.length} catatan</span></div>
@@ -43,9 +43,9 @@ export default async function Catatan() {
                     {list.map((e) => (
                       <li key={e.id}>
                         <span className="grow"><span className="name">{e.note || label(e.budget_item_id) || 'Pengeluaran'}</span>
-                          {label(e.budget_item_id) || pk(e.pocket_id) ? <span className="meta">{[label(e.budget_item_id), pk(e.pocket_id)].filter(Boolean).join(' · ')}</span> : null}</span>
+                          {label(e.budget_item_id) || pk(e.pocket_id) || e.transfer_id ? <span className="meta">{[label(e.budget_item_id), pk(e.pocket_id), e.transfer_id ? 'Otomatis dari Pindah dana (hapus lewat halaman Sumber dana)' : ''].filter(Boolean).join(' · ')}</span> : null}</span>
                         <span className="amt">{rp(e.amount)}</span>
-                        {ctx.canEdit ? <ActionButton action={deleteExpense} args={[e.id]} label={`Hapus catatan ${e.note || rp(e.amount)}`} /> : null}
+                        {ctx.canEdit && !e.transfer_id ? <ActionButton action={deleteExpense} args={[e.id]} label={`Hapus catatan ${e.note || rp(e.amount)}`} /> : null}
                       </li>
                     ))}
                   </ul>

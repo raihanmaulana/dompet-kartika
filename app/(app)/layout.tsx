@@ -12,9 +12,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="shell">
       <aside className="rail">
-        <Link href="/" className="brand" aria-label="Dompet Kartika, ke beranda">
+        <Link href="/" className="brand" aria-label="Wallet Together, ke beranda">
           <Mark />
-          <span><b>dompet kartika</b><small>uang bulanan, rapi</small></span>
+          <span><b>Wallet Together</b><small>uang bulanan, rapi</small></span>
         </Link>
         <RailNav />
         <div className="rail-foot">
@@ -26,7 +26,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div>
         <main className="main" id="isi">
           <div className="mobile-head">
-            <Link href="/" className="brand" aria-label="Beranda"><Mark /><span><b>dompet kartika</b></span></Link>
+            <Link href="/" className="brand" aria-label="Beranda"><Mark /><span><b>Wallet Together</b></span></Link>
             <OwnerSwitch owners={ctx.owners} current={ctx.ownerId} me={ctx.userId} />
           </div>
           {children}

@@ -15,6 +15,6 @@ export async function queryPockets(sb: SupabaseClient, owner: string, today: { y
     sb.from('goal_deposits').select('ym,amount,pocket_id').eq('owner_id', owner).not('pocket_id', 'is', null),
   ])
   const pockets = (p.data ?? []).map((r) => ({ ...r, opening_balance: num(r.opening_balance) })) as Pocket[]
-  const transfers = nums(t.data) as Transfer[]
+  const transfers = nums(t.data).map((r) => ({ ...r, fee: num(r.fee) })) as Transfer[]
   return { pockets: pocketBalances(pockets, nums(inc.data), nums(exp.data), nums(dep.data), transfers, today), transfers }
 }

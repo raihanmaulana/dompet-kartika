@@ -1,4 +1,4 @@
-# Dompet Kartika
+# Wallet Together
 
 Aplikasi web untuk mencatat pengeluaran harian, mengatur anggaran, tagihan/hutang, tabungan, dan simulasi investasi.
 **Semua data tersimpan per bulan** (anggaran, catatan, tagihan, status bayar), jadi ganti bulan = isi berbeda.
