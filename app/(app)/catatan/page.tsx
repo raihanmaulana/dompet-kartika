@@ -60,9 +60,9 @@ export default async function Catatan() {
               <QuickForm action={addExpense} className="stack">
                 <div className="form-grid">
                   <label className="field full"><span>Berapa?</span><MoneyInput name="amount" label="Jumlah pengeluaran" required /></label>
-                  <label className="field"><span>Pos</span>
+                  <label className="field"><span>Kategori</span>
                     <select className="select" name="budget_item_id" defaultValue="">
-                      <option value="">Tanpa pos</option>
+                      <option value="">Tanpa kategori</option>
                       {pos.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                     </select>
                   </label>
@@ -75,7 +75,7 @@ export default async function Catatan() {
           ) : null}
 
           <section className="tile" style={{ ['--i' as string]: 2 }} aria-labelledby="h-pos">
-            <div className="tile-head"><TileTitle id="h-pos" icon={Target}>Per pos</TileTitle></div>
+            <div className="tile-head"><TileTitle id="h-pos" icon={Target}>Per kategori</TileTitle></div>
             <ul className="rows">
               {pos.map((p) => {
                 const used = s.spentByItem[p.id] ?? 0
@@ -91,7 +91,7 @@ export default async function Catatan() {
                   </li>
                 )
               })}
-              {noPos > 0 ? <li><span className="grow name">Tanpa pos</span><span className="amt">{rp(noPos)}</span></li> : null}
+              {noPos > 0 ? <li><span className="grow name">Tanpa kategori</span><span className="amt">{rp(noPos)}</span></li> : null}
             </ul>
           </section>
         </div>

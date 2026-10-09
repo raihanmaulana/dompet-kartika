@@ -26,7 +26,7 @@ export default async function Anggaran() {
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   if (!data.income.length && !data.budget.length) {
-    return (<><PageHead ctx={ctx} title="Anggaran" sub="Atur pemasukan dan jatah tiap pos" /><div className="bento"><EmptyMonth ctx={ctx} /></div></>)
+    return (<><PageHead ctx={ctx} title="Anggaran" sub="Atur pemasukan dan jatah tiap kategori" /><div className="bento"><EmptyMonth ctx={ctx} /></div></>)
   }
   const ro = !ctx.canEdit
   const pctOf = (n: number) => (s.bersih > 0 ? `${Math.round((n / s.bersih) * 100)}%` : '–')
@@ -69,7 +69,7 @@ export default async function Anggaran() {
             <li><span className="grow name">Rencana kebutuhan + gaya hidup</span><span className="amt">{rp(s.rencanaBelanja)}</span></li>
           </ul>
           {s.selisihRencana < 0
-            ? <p className="form-msg err" style={{ marginTop: 'var(--space-4)' }}>Rencana belanja melebihi uang yang tersedia sebesar {rp(-s.selisihRencana)}. Kurangi pos belanja, tabungan, atau investasi.</p>
+            ? <p className="form-msg err" style={{ marginTop: 'var(--space-4)' }}>Rencana belanja melebihi uang yang tersedia sebesar {rp(-s.selisihRencana)}. Kurangi kategori belanja, tabungan, atau investasi.</p>
             : <p className="form-msg info" style={{ marginTop: 'var(--space-4)' }}>{s.selisihRencana === 0 ? 'Pas! Semua uang sudah punya tempat.' : `${rp(s.selisihRencana)} belum dialokasikan. Bisa ditambah ke tabungan atau jadi bantalan.`}</p>}
         </section>
 
@@ -82,18 +82,18 @@ export default async function Anggaran() {
               <ul className="rows">
                 {items.map((b) => (
                   <li key={b.id} className="row">
-                    <span className="grow"><InlineField id={b.id} field="label" value={b.label} action={updateBudget} label="Nama pos" disabled={ro} /></span>
+                    <span className="grow"><InlineField id={b.id} field="label" value={b.label} action={updateBudget} label="Nama kategori" disabled={ro} /></span>
                     <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={b.id} field="amount" value={b.amount} money action={updateBudget} label={`Jatah ${b.label}`} disabled={ro} /></span>
-                    {!ro ? <ActionButton action={deleteBudget} args={[b.id]} label={`Hapus pos ${b.label}`} /> : null}
+                    {!ro ? <ActionButton action={deleteBudget} args={[b.id]} label={`Hapus kategori ${b.label}`} /> : null}
                   </li>
                 ))}
-                {!items.length ? <li><span className="hint">Belum ada pos.</span></li> : null}
+                {!items.length ? <li><span className="hint">Belum ada kategori.</span></li> : null}
               </ul>
               {!ro ? (
                 <QuickForm action={addBudget} className="cluster" >
                   <input type="hidden" name="ym" value={ctx.ym} /><input type="hidden" name="grp" value={g.grp} />
-                  <input className="input" style={{ flex: '1 1 9rem' }} name="label" placeholder={g.ph} maxLength={80} required aria-label="Nama pos baru" />
-                  <div style={{ flex: '1 1 8rem' }}><MoneyInput name="amount" label="Jatah pos baru" /></div>
+                  <input className="input" style={{ flex: '1 1 9rem' }} name="label" placeholder={g.ph} maxLength={80} required aria-label="Nama kategori baru" />
+                  <div style={{ flex: '1 1 8rem' }}><MoneyInput name="amount" label="Jatah kategori baru" /></div>
                   <Submit className="btn small ghost"><Plus aria-hidden /> Tambah</Submit>
                 </QuickForm>
               ) : null}

@@ -18,7 +18,7 @@ export async function EmptyMonth({ ctx }: { ctx: Ctx }) {
             <p>
               {hasPrev
                 ? `Mulai dari angka ${ymLabel(prev)} lalu ubah seperlunya. Bulan ini punya anggaran, catatan, dan tagihannya sendiri, jadi mengubahnya tidak memengaruhi bulan lain.`
-                : 'Mulai dari rencana awal (gaji, potongan, uang bulanan, dan pos-pos anggaran), lalu sesuaikan angkanya.'}
+                : 'Mulai dari rencana awal (gaji, potongan, uang bulanan, dan kategori anggaran), lalu sesuaikan angkanya.'}
             </p>
             <div className="actions">
               {hasPrev ? (

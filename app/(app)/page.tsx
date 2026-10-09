@@ -83,7 +83,7 @@ export default async function Beranda() {
                 <label className="field full"><span>Berapa?</span><MoneyInput name="amount" label="Jumlah pengeluaran" required /></label>
                 <label className="field"><span>Untuk apa?</span>
                   <select className="select" name="budget_item_id" defaultValue="">
-                    <option value="">Tanpa pos</option>
+                    <option value="">Tanpa kategori</option>
                     {posList.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select>
                 </label>
