@@ -1,9 +1,11 @@
 import { TileTitle } from '@/components/TileTitle'
-import { Eye, Plus, UserRound } from 'lucide-react'
+import { Eye, Plus, Sheet, UserRound } from 'lucide-react'
 import { getCtx, loadViewers } from '@/lib/data'
 import { addViewer, removeViewer, updateName } from '@/lib/actions'
 import { signOut } from '@/lib/auth-actions'
 import { PageHead } from '@/components/PageHead'
+import { SheetSync } from '@/components/SheetSync'
+import { sheetsEnabled } from '@/lib/sheets'
 import { ActionButton, QuickForm, Submit } from '@/components/Fields'
 
 export const metadata = { title: 'Pengaturan' }
@@ -40,6 +42,12 @@ export default async function Pengaturan() {
             <input className="input" style={{ flex: '1 1 12rem' }} type="email" name="email" required placeholder="email pasangan" aria-label="Email pemantau" />
             <Submit className="btn small"><Plus aria-hidden /> Beri akses</Submit>
           </QuickForm>
+        </section>
+        <section className="tile s12" style={{ ['--i' as string]: 2 }} aria-labelledby="h-sheet">
+          <div className="tile-head"><TileTitle id="h-sheet" icon={Sheet}>Google Sheet untuk audit</TileTitle></div>
+          {ctx.canEdit
+            ? <SheetSync enabled={sheetsEnabled()} sheetUrl={process.env.NEXT_PUBLIC_SHEET_URL} />
+            : <p className="hint">Hanya pemilik data yang bisa mengatur sinkron Google Sheet.</p>}
         </section>
       </div>
     </>

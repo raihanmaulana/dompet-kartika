@@ -31,6 +31,19 @@ Stack: Next.js 15 (App Router) · Supabase (Auth + Postgres + Row Level Security
 - Tagihan/hutang dibuat sekali dengan bulan mulai dan lama (atau terus-menerus). Per bulan bisa: ubah nominal bulan itu saja, ubah dari bulan itu seterusnya, lewati satu bulan, tandai lunas, atau hentikan.
 - Uang belanja = pemasukan bersih − tagihan/cicilan/hutang − tabungan − investasi. Sisa jatah = uang belanja − pengeluaran tercatat.
 
+## Google Sheet untuk audit (opsional)
+
+Setiap perubahan di aplikasi disalin otomatis ke Google Sheet (satu arah: aplikasi → Sheet). Tab: Pemasukan, Anggaran, Catatan, Tagihan, Status Tagihan, Target Tabungan, Setoran Tabungan, Ringkasan Bulanan, dan **Log perubahan** (siapa, kapan, apa).
+
+1. Buat Google Sheet kosong → **Extensions → Apps Script**.
+2. Tempel isi `google-apps-script/Code.gs`, ganti `SECRET` dengan kata sandi acak panjang, lalu jalankan fungsi `siapkan` sekali (izinkan akses).
+3. **Deploy → New deployment → Web app**: *Execute as: Me*, *Who has access: Anyone*. Salin URL `/exec`.
+4. Di Vercel → Environment Variables isi `SHEETS_WEBHOOK_URL` (URL tadi), `SHEETS_WEBHOOK_SECRET` (sama dengan SECRET), dan opsional `NEXT_PUBLIC_SHEET_URL`. Redeploy.
+5. Buka **Pengaturan → Sinkronkan semua sekarang** untuk mengisi data yang sudah ada.
+6. Bagikan Sheet sebagai **Viewer** saja. Mengubah Sheet tidak mengubah aplikasi.
+
+Sinkron bersifat best-effort: jika gagal, aksi di aplikasi tetap berhasil; tekan "Sinkronkan semua" untuk memulihkan.
+
 ## Lokal
 ```
 cp .env.example .env.local   # isi key Supabase
