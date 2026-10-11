@@ -76,22 +76,9 @@ export async function setViewAs(id: string) {
 }
 
 // ---------- Bulan baru ----------
-const DEFAULT_INCOME = [
-  { label: 'Gaji kotor', kind: 'masuk', amount: 6_500_000 },
-  { label: 'Potongan PPh 21', kind: 'potong', amount: 65_000 },
-  { label: 'Potongan BPJS karyawan', kind: 'potong', amount: 195_000 },
-  { label: 'Uang bulanan dari orang tua', kind: 'masuk', amount: 1_500_000 },
-]
-const DEFAULT_BUDGET = [
-  { grp: 'kebutuhan', label: 'Kebutuhan pokok', amount: 2_850_000 },
-  { grp: 'gaya_hidup', label: 'Gaya hidup', amount: 1_300_000 },
-  { grp: 'tabungan', label: 'Dana darurat', amount: 1_000_000 },
-  { grp: 'tabungan', label: 'Tujuan tertentu', amount: 500_000 },
-  { grp: 'investasi', label: 'Reksa dana pasar uang', amount: 400_000 },
-  { grp: 'investasi', label: 'SBN ritel / RD pendapatan tetap', amount: 400_000 },
-  { grp: 'investasi', label: 'Reksa dana indeks saham', amount: 400_000 },
-  { grp: 'investasi', label: 'Emas', amount: 200_000 },
-]
+// Rencana awal sengaja minimal: hanya gaji. Potongan, uang tambahan, dan kategori anggaran diisi sendiri.
+const DEFAULT_INCOME = [{ label: 'Gaji', kind: 'masuk', amount: 6_500_000 }]
+const DEFAULT_BUDGET: { grp: string; label: string; amount: number }[] = []
 
 export async function seedMonth(formData: FormData) {
   const ym = text(formData.get('ym'), 7)
@@ -113,7 +100,7 @@ export async function seedMonth(formData: FormData) {
     if (bud.data?.length) await sb.from('budget_items').insert(bud.data.map((r) => ({ ...r, owner_id: uid, ym })))
   } else {
     await sb.from('income_items').insert(DEFAULT_INCOME.map((r, i) => ({ ...r, owner_id: uid, ym, sort: i })))
-    await sb.from('budget_items').insert(DEFAULT_BUDGET.map((r, i) => ({ ...r, owner_id: uid, ym, sort: i })))
+    if (DEFAULT_BUDGET.length) await sb.from('budget_items').insert(DEFAULT_BUDGET.map((r, i) => ({ ...r, owner_id: uid, ym, sort: i })))
   }
   if (sheetsEnabled()) {
     const [i, b] = await Promise.all([

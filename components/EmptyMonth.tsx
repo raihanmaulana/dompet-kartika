@@ -18,7 +18,7 @@ export async function EmptyMonth({ ctx }: { ctx: Ctx }) {
             <p>
               {hasPrev
                 ? `Mulai dari angka ${ymLabel(prev)} lalu ubah seperlunya. Bulan ini punya anggaran, catatan, dan tagihannya sendiri, jadi mengubahnya tidak memengaruhi bulan lain.`
-                : 'Mulai dari rencana awal (gaji, potongan, uang bulanan, dan kategori anggaran), lalu sesuaikan angkanya.'}
+                : 'Mulai dengan satu pemasukan: gaji Rp6.500.000. Sisanya (potongan, kategori anggaran, dan lainnya) kamu isi sendiri sesuai kebutuhan.'}
             </p>
             <div className="actions">
               {hasPrev ? (
@@ -29,7 +29,7 @@ export async function EmptyMonth({ ctx }: { ctx: Ctx }) {
               ) : null}
               <form action={seedMonth}>
                 <input type="hidden" name="ym" value={ctx.ym} /><input type="hidden" name="mode" value="default" />
-                <Submit className={hasPrev ? 'btn ghost' : 'btn'}>Pakai rencana awal</Submit>
+                <Submit className={hasPrev ? 'btn ghost' : 'btn'}>Mulai dengan gaji</Submit>
               </form>
             </div>
           </>
