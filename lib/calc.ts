@@ -51,6 +51,10 @@ export type BillRow = {
   amount: number // nominal bulan ini (sudah memakai penyesuaian)
   skipped: boolean
   paid: boolean
+  isCard: boolean
+  paidAmount: number // yang sudah dibayar bulan ini (kartu kredit; tagihan lain 0 atau penuh)
+  minPayment: number // pembayaran minimum kartu kredit (0 = tidak diatur)
+  minMet: boolean
   overridden: boolean
   dueDay: number // dibatasi ke jumlah hari di bulan itu
   monthsAfter: number | null // sisa bulan setelah bulan ini (null = tanpa batas)
@@ -67,11 +71,19 @@ export function billRowsFor(bills: Bill[], bms: BillMonth[], ym: string): BillRo
     const overridden = bm?.amount_override != null
     const amount = bm?.amount_override ?? bill.amount
     const monthsAfter = bill.end_ym ? ymDiff(bill.end_ym, ym) : null
+    const isCard = bill.kind === 'kartu'
+    const paidAmount = isCard ? Math.max(0, bm?.paid_amount ?? 0) : bm?.paid ? amount : 0
+    const minPayment = isCard ? Math.min(bill.min_payment ?? 0, amount) : 0
+    const paid = isCard ? amount > 0 && paidAmount >= amount : !!bm?.paid
     rows.push({
       bill,
       amount,
       skipped: !!bm?.skipped,
-      paid: !!bm?.paid,
+      paid,
+      isCard,
+      paidAmount,
+      minPayment,
+      minMet: paid || (minPayment > 0 && paidAmount >= minPayment),
       overridden,
       dueDay: Math.min(bill.due_day, daysInMonth(ym)),
       monthsAfter,
@@ -114,7 +126,7 @@ export function summarize(
   const live = rows.filter((r) => !r.skipped)
   const tagihan = live.reduce((s, r) => s + r.amount, 0)
   const cicilanHutang = live.filter((r) => r.bill.kind !== 'tagihan').reduce((s, r) => s + r.amount, 0)
-  const tagihanBelumBayar = live.filter((r) => !r.paid).reduce((s, r) => s + r.amount, 0)
+  const tagihanBelumBayar = live.filter((r) => !r.paid).reduce((s, r) => s + (r.isCard ? Math.max(0, r.amount - r.paidAmount) : r.amount), 0)
   const grp: Record<Grp, number> = { kebutuhan: 0, gaya_hidup: 0, tabungan: 0, investasi: 0 }
   for (const b of budget) grp[b.grp] += b.amount
   const uangBelanja = bersih - tagihan - grp.tabungan - grp.investasi

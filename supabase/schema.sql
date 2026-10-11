@@ -53,12 +53,13 @@ create table if not exists public.bills (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
   name text not null,
-  kind text not null check (kind in ('tagihan','cicilan','hutang')),
+  kind text not null check (kind in ('tagihan','cicilan','hutang','kartu')),
   amount bigint not null default 0 check (amount >= 0),
   due_day int not null default 1 check (due_day between 1 and 31),
   start_ym text not null check (start_ym ~ '^\d{4}-\d{2}$'),
   end_ym text check (end_ym is null or end_ym ~ '^\d{4}-\d{2}$'),
   note text not null default '',
+  min_payment bigint not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -71,6 +72,7 @@ create table if not exists public.bill_months (
   skipped boolean not null default false,
   paid boolean not null default false,
   paid_at timestamptz,
+  paid_amount bigint not null default 0,
   primary key (bill_id, ym)
 );
 

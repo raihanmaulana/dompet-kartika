@@ -30,10 +30,12 @@ export const demoBills: Bill[] = [
   { id: 'l1', name: 'Wifi kos', kind: 'tagihan', amount: 150_000, due_day: 5, start_ym: '2026-10', end_ym: null, note: '' },
   { id: 'l2', name: 'Pulsa / paket data', kind: 'tagihan', amount: 100_000, due_day: 12, start_ym: '2026-10', end_ym: null, note: '' },
   { id: 'l3', name: 'Cicilan HP', kind: 'cicilan', amount: 450_000, due_day: 20, start_ym: '2026-08', end_ym: '2027-01', note: '' },
+  { id: 'l5', name: 'Kartu kredit BCA', kind: 'kartu', amount: 1_850_000, due_day: 17, start_ym: '2026-10', end_ym: null, note: '', min_payment: 185_000 },
   { id: 'l4', name: 'Pinjam ke teman', kind: 'hutang', amount: 200_000, due_day: 28, start_ym: '2026-10', end_ym: '2026-12', note: 'Untuk laptop' },
 ]
 export const demoBillMonths: BillMonth[] = [
   { bill_id: 'l1', ym: '2026-10', amount_override: null, skipped: false, paid: true },
+  { bill_id: 'l5', ym: '2026-10', amount_override: null, skipped: false, paid: false, paid_amount: 600_000 },
 ]
 export const demoGoals: Goal[] = [
   { id: 'g1', name: 'Dana darurat', target: 15_000_000, is_emergency: true },

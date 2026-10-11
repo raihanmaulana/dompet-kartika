@@ -25,7 +25,7 @@ const TAB: Record<Table, string> = {
 }
 const POCKET_KIND: Record<string, string> = { bank: 'Bank', ewallet: 'E-wallet', tunai: 'Tunai', lainnya: 'Lainnya' }
 const GRP_LABEL: Record<string, string> = { kebutuhan: 'Kebutuhan pokok', gaya_hidup: 'Gaya hidup', tabungan: 'Tabungan', investasi: 'Investasi' }
-const KIND_LABEL: Record<string, string> = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang' }
+const KIND_LABEL: Record<string, string> = { tagihan: 'Tagihan rutin', cicilan: 'Cicilan', hutang: 'Hutang', kartu: 'Kartu kredit' }
 export const SUMMARY_TAB = 'Ringkasan Bulanan'
 
 const wib = (d: Date | string) => new Date(d).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'medium' })
@@ -84,12 +84,12 @@ export async function rowEvent(sb: SupabaseClient, table: Table, id: string, key
     const [billId, ym] = (key ?? id).split('|')
     const [{ data: bm }, { data: bill }] = await Promise.all([
       sb.from('bill_months').select('*').eq('bill_id', billId).eq('ym', ym).maybeSingle(),
-      sb.from('bills').select('name,amount').eq('id', billId).maybeSingle(),
+      sb.from('bills').select('name,amount,kind').eq('id', billId).maybeSingle(),
     ])
     if (!bm || !bill) return { op: 'delete', tab, id: `${billId}|${ym}` }
     return { op: 'upsert', tab, id: `${billId}|${ym}`, cells: [
       `${billId}|${ym}`, ym, bill.name, Number(bm.amount_override ?? bill.amount),
-      bm.skipped ? 'Ya' : 'Tidak', bm.paid ? 'Lunas' : 'Belum', bm.paid_at ? wib(bm.paid_at) : '', billId,
+      bm.skipped ? 'Ya' : 'Tidak', (bill.kind === 'kartu' ? Number(bm.paid_amount ?? 0) >= Number(bm.amount_override ?? bill.amount) && Number(bill.amount) > 0 : bm.paid) ? 'Lunas' : (Number(bm.paid_amount ?? 0) > 0 ? 'Dicicil' : 'Belum'), bm.paid_at ? wib(bm.paid_at) : '', billId, Number(bm.paid_amount ?? 0),
     ] }
   }
   const { data: r } = (await sb.from(table).select('*').eq('id', id).maybeSingle()) as { data: Row | null }
@@ -102,7 +102,7 @@ export async function rowEvent(sb: SupabaseClient, table: Table, id: string, key
       if (r.budget_item_id) kat = (await sb.from('budget_items').select('label').eq('id', r.budget_item_id).maybeSingle()).data?.label ?? ''
       return { op: 'upsert', tab, id, cells: [id, r.ym, r.spent_on, kat, r.note, Number(r.amount), await pocketName(sb, r.pocket_id)] }
     }
-    case 'bills': return { op: 'upsert', tab, id, cells: [id, r.name, KIND_LABEL[r.kind] ?? r.kind, Number(r.amount), r.due_day, r.start_ym, r.end_ym ?? 'terus', r.note] }
+    case 'bills': return { op: 'upsert', tab, id, cells: [id, r.name, KIND_LABEL[r.kind] ?? r.kind, Number(r.amount), r.due_day, r.start_ym, r.end_ym ?? 'terus', r.note, Number(r.min_payment ?? 0)] }
     case 'goals': return { op: 'upsert', tab, id, cells: [id, r.name, Number(r.target), r.is_emergency ? 'Ya' : 'Tidak'] }
     case 'goal_deposits': {
       const g = (await sb.from('goals').select('name').eq('id', r.goal_id).maybeSingle()).data

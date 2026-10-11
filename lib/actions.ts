@@ -8,7 +8,7 @@ import { supabaseServer } from './supabase/server.ts'
 import { fmtRp, fullSyncEvents, logEvent, pocketEvents, postEvents, queue, rowEvent, sheetsEnabled, summaryEvent, type SheetEvent, type Table } from './sheets.ts'
 
 const GRP = ['kebutuhan', 'gaya_hidup', 'tabungan', 'investasi'] as const
-const KINDS = ['tagihan', 'cicilan', 'hutang'] as const
+const KINDS = ['tagihan', 'cicilan', 'hutang', 'kartu'] as const
 const POCKET_KINDS = ['bank', 'ewallet', 'tunai', 'lainnya'] as const
 
 const money = (v: FormDataEntryValue | string | number | null | undefined) => {
@@ -27,7 +27,7 @@ async function me() {
 }
 type C = NonNullable<Awaited<ReturnType<typeof me>>>
 
-const KIND_NAME: Record<string, string> = { tagihan: 'tagihan rutin', cicilan: 'cicilan', hutang: 'hutang' }
+const KIND_NAME: Record<string, string> = { tagihan: 'tagihan rutin', cicilan: 'cicilan', hutang: 'hutang', kartu: 'kartu kredit' }
 
 /** Salin perubahan ke Google Sheet (bila diatur): baris data, ringkasan bulan, dan log perubahan. */
 async function mirror(c: C, items: { table: Table; id: string; key?: string }[], aksi: string, tabel: string, ringkasan: string, months: string[] = [], extra: SheetEvent[] = []) {
@@ -265,6 +265,7 @@ export async function addBill(formData: FormData): Promise<string | void> {
     due_day: Math.min(31, Math.max(1, Number(formData.get('due_day')) || 1)),
     start_ym, end_ym: months > 0 ? ymAdd(start_ym, months - 1) : null,
     note: text(formData.get('note'), 120),
+    min_payment: kind === 'kartu' ? Math.min(money(formData.get('min_payment')), amount) : 0,
   }).select('id').single()
   if (error || !row) { console.error('[tagihan] gagal simpan', error); return `Gagal menyimpan: ${error?.message ?? 'tidak ada data kembali'}` }
   await mirror(c, [{ table: 'bills', id: row.id }], 'Tambah', 'Tagihan', `${name} (${KIND_NAME[kind]}) ${fmtRp(amount)}/bulan mulai ${ymLabel(start_ym)}${months > 0 ? `, ${months} bulan` : ', terus'}`, [await curYm(), start_ym])
@@ -276,7 +277,7 @@ async function upsertBM(c: NonNullable<Awaited<ReturnType<typeof me>>>, billId: 
   const { data: cur } = await c.sb.from('bill_months').select('*').eq('bill_id', billId).eq('ym', ym).maybeSingle()
   await c.sb.from('bill_months').upsert({
     bill_id: billId, owner_id: c.uid, ym,
-    amount_override: cur?.amount_override ?? null, skipped: cur?.skipped ?? false, paid: cur?.paid ?? false, paid_at: cur?.paid_at ?? null,
+    amount_override: cur?.amount_override ?? null, skipped: cur?.skipped ?? false, paid: cur?.paid ?? false, paid_at: cur?.paid_at ?? null, paid_amount: cur?.paid_amount ?? 0,
     ...patch,
   })
 }
@@ -284,9 +285,59 @@ export async function setBillPaid(billId: string, ym: string, paid: boolean) {
   if (!isYm(ym)) return
   const c = await me()
   if (!c) return done()
-  await upsertBM(c, billId, ym, { paid, paid_at: paid ? new Date().toISOString() : null })
-  const b = (await c.sb.from('bills').select('name').eq('id', billId).maybeSingle()).data
+  const full = (await c.sb.from('bills').select('name,amount,kind').eq('id', billId).eq('owner_id', c.uid).maybeSingle()).data
+  if (!full) return
+  const ov = (await c.sb.from('bill_months').select('amount_override').eq('bill_id', billId).eq('ym', ym).maybeSingle()).data?.amount_override
+  await upsertBM(c, billId, ym, { paid, paid_at: paid ? new Date().toISOString() : null, ...(full.kind === 'kartu' ? { paid_amount: paid ? Number(ov ?? full.amount) : 0 } : {}) })
+  const b = full
   await mirror(c, [{ table: 'bill_months', id: billId, key: `${billId}|${ym}` }], paid ? 'Tandai lunas' : 'Batalkan lunas', 'Status Tagihan', `${ymLabel(ym)}: ${b?.name ?? ''}`, [ym])
+  done()
+}
+/** Kartu kredit: catat pembayaran (ditambahkan ke yang sudah dibayar bulan itu). */
+export async function payBill(formData: FormData): Promise<string | void> {
+  const billId = text(formData.get('bill_id'), 40)
+  const ym = text(formData.get('ym'), 7)
+  const add = money(formData.get('amount'))
+  if (!billId || !isYm(ym)) return
+  if (add <= 0) return 'Isi nominal pembayarannya dulu.'
+  const c = await me()
+  if (!c) return done()
+  const { data: b } = await c.sb.from('bills').select('name,amount').eq('id', billId).eq('owner_id', c.uid).maybeSingle()
+  if (!b) return
+  const cur = (await c.sb.from('bill_months').select('amount_override,paid_amount').eq('bill_id', billId).eq('ym', ym).maybeSingle()).data
+  const total = Number(cur?.amount_override ?? b.amount)
+  const was = Number(cur?.paid_amount ?? 0)
+  const now = Math.min(was + add, 100_000_000_000)
+  const paid = total > 0 && now >= total
+  await upsertBM(c, billId, ym, { paid_amount: now, paid, paid_at: paid ? new Date().toISOString() : null })
+  await mirror(c, [{ table: 'bill_months', id: billId, key: `${billId}|${ym}` }], 'Bayar kartu kredit', 'Status Tagihan', `${ymLabel(ym)}: ${b.name} +${fmtRp(add)} (total ${fmtRp(now)} dari ${fmtRp(total)})`, [ym])
+  done()
+}
+/** Koreksi total yang sudah dibayar bulan itu (kartu kredit). */
+export async function setBillPaidAmount(key: string, _field: string, value: string) {
+  const [billId, ym] = key.split('|')
+  if (!billId || !isYm(ym)) return
+  const c = await me()
+  if (!c) return done()
+  const { data: b } = await c.sb.from('bills').select('name,amount').eq('id', billId).eq('owner_id', c.uid).maybeSingle()
+  if (!b) return
+  const cur = (await c.sb.from('bill_months').select('amount_override,paid_amount').eq('bill_id', billId).eq('ym', ym).maybeSingle()).data
+  const total = Number(cur?.amount_override ?? b.amount)
+  const v = money(value)
+  const paid = total > 0 && v >= total
+  await upsertBM(c, billId, ym, { paid_amount: v, paid, paid_at: paid ? new Date().toISOString() : null })
+  await mirror(c, [{ table: 'bill_months', id: billId, key: `${billId}|${ym}` }], 'Ubah total dibayar', 'Status Tagihan', `${ymLabel(ym)}: ${b.name} dibayar ${fmtRp(Number(cur?.paid_amount ?? 0))} → ${fmtRp(v)}`, [ym])
+  done()
+}
+/** Ubah pembayaran minimum kartu kredit (berlaku seterusnya). */
+export async function setBillMin(id: string, _field: string, value: string) {
+  const c = await me()
+  if (!c) return done()
+  const { data: b } = await c.sb.from('bills').select('name,amount,min_payment').eq('id', id).eq('owner_id', c.uid).maybeSingle()
+  if (!b) return
+  const v = Math.min(money(value), Number(b.amount))
+  await c.sb.from('bills').update({ min_payment: v }).eq('id', id).eq('owner_id', c.uid)
+  await mirror(c, [{ table: 'bills', id }], 'Ubah minimum bayar', 'Tagihan', `${b.name}: minimum ${fmtRp(Number(b.min_payment ?? 0))} → ${fmtRp(v)}`, [await curYm()])
   done()
 }
 export async function setBillSkipped(billId: string, ym: string, skipped: boolean) {
@@ -336,7 +387,7 @@ export async function changeBillFrom(fd: FormData) {
     await c.sb.from('bills').update({ end_ym: ymAdd(ym, -1) }).eq('id', billId)
     const { data: nb } = await c.sb.from('bills').insert({
       owner_id: c.uid, name: b.name, kind: b.kind, amount: v, due_day: b.due_day,
-      start_ym: ym, end_ym: b.end_ym, note: b.note,
+      start_ym: ym, end_ym: b.end_ym, note: b.note, min_payment: b.min_payment ?? 0,
     }).select('id').single()
     if (nb) ids.push(nb.id)
   }

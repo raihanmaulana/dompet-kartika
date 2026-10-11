@@ -459,3 +459,38 @@ ul.rows { margin: 0; padding: 0; }
 .edit-form { gap: var(--space-4); }
 .pocket-inline { min-height: 34px; width: auto; max-width: 100%; margin-top: 6px; padding: 0 var(--space-3); font-size: var(--text-sm); border-radius: 12px; display: block; }
 .row .pocket-inline { margin-top: 0; width: 100%; }
+
+/* ---- Daftar tagihan (kartu per tagihan) ---- */
+.bills { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.bill { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-4); align-items: start; padding: var(--space-4); background: var(--color-surface); border: var(--rule-w) solid var(--color-rule-2); border-radius: var(--radius-field); border-left: 4px solid var(--color-accent); }
+.bill.is-paid { border-left-color: var(--color-ok); }
+.bill.is-late { border-left-color: var(--color-over); }
+.bill.is-skipped { opacity: .62; border-left-color: var(--color-rule-2); }
+.bill-date { display: grid; place-items: center; width: 3rem; padding: var(--space-2) 0; border-radius: var(--radius-field); background: var(--color-paper-2); line-height: 1; }
+.bill-date b { font-size: var(--text-lg, 1.25rem); font-variant-numeric: tabular-nums; }
+.bill-date i { font-style: normal; font-size: .7rem; opacity: .7; margin-top: 2px; }
+.bill-main { min-width: 0; display: grid; gap: var(--space-2); }
+.bill-top { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.bill-top .name { font-weight: 600; overflow-wrap: anywhere; }
+.bill-ic { display: inline-grid; place-items: center; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: var(--color-paper-3); }
+.bill .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; font-size: var(--text-sm); opacity: .8; }
+.chip.over { background: var(--color-over); color: var(--color-surface); }
+.bill-side { display: grid; justify-items: end; gap: var(--space-2); }
+.bill-amt { width: 9.5rem; }
+.bill-check { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); }
+.bill-more summary { cursor: pointer; font-size: var(--text-sm); }
+.bill-more-body { margin-top: var(--space-3); padding: var(--space-3); background: var(--color-paper-2); border-radius: var(--radius-field); }
+.cc { display: grid; gap: var(--space-2); padding: var(--space-3); background: var(--color-paper-2); border-radius: var(--radius-field); }
+.cc-bar { position: relative; }
+.cc-bar .meter { height: 14px; background: var(--color-surface); }
+.cc-min { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--color-over); border-radius: 2px; transform: translateX(-1px); }
+.cc-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); margin: 0; font-size: var(--text-sm); }
+.cc-line.sub { opacity: .8; }
+.cc-pay { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.cc-pay .pre { flex: 1 1 10rem; min-width: 0; }
+@media (max-width: 640px) {
+  .bill { grid-template-columns: auto minmax(0, 1fr); }
+  .bill-side { grid-column: 1 / -1; grid-template-columns: 1fr auto; justify-items: stretch; align-items: center; }
+  .bill-amt { width: auto; }
+}
+@media (prefers-reduced-motion: reduce) { .bill, .cc-bar .meter > i { transition: none; } }

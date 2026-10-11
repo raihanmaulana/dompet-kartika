@@ -119,3 +119,16 @@ test('pocketBalances menghitung saldo tiap sumber dana', async () => {
   // GoPay: −35.000 + 300.000 = 265.000
   assert.equal(r[1].saldo, 265_000)
 })
+
+test('kartu kredit: progres bayar, minimum, dan sisa belum bayar', () => {
+  const card = { id: 'k', name: 'BCA', kind: 'kartu' as const, amount: 1_000_000, due_day: 17, start_ym: '2026-10', end_ym: null, note: '', min_payment: 100_000 }
+  const bm = (paid_amount: number) => [{ bill_id: 'k', ym: '2026-10', amount_override: null, skipped: false, paid: false, paid_amount }]
+  let r = billRowsFor([card], bm(0), '2026-10')[0]
+  assert.equal(r.minMet, false); assert.equal(r.paid, false)
+  r = billRowsFor([card], bm(150_000), '2026-10')[0]
+  assert.equal(r.minMet, true); assert.equal(r.paid, false)
+  const s = summarize([], [], [], [r], null, '2026-10')
+  assert.equal(s.tagihanBelumBayar, 850_000)
+  r = billRowsFor([card], bm(1_000_000), '2026-10')[0]
+  assert.equal(r.paid, true)
+})
