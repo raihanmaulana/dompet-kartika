@@ -248,23 +248,26 @@ export async function deleteExpense(id: string) {
 }
 
 // ---------- Tagihan ----------
-export async function addBill(formData: FormData) {
+export async function addBill(formData: FormData): Promise<string | void> {
   const name = text(formData.get('name'))
   const kind = text(formData.get('kind'), 10)
   const start_ym = text(formData.get('start_ym'), 7)
   const endRaw = text(formData.get('months'), 3)
   const months = Number(endRaw.replace(/\D/g, ''))
-  if (!name || !(KINDS as readonly string[]).includes(kind) || !isYm(start_ym)) return
+  if (!name) return 'Nama wajib diisi.'
+  if (!(KINDS as readonly string[]).includes(kind)) return 'Jenis tidak dikenal.'
+  if (!isYm(start_ym)) return 'Bulan mulai tidak valid, pilih ulang bulannya.'
   const c = await me()
   if (!c) return done()
   const amount = money(formData.get('amount'))
-  const { data: row } = await c.sb.from('bills').insert({
+  const { data: row, error } = await c.sb.from('bills').insert({
     owner_id: c.uid, name, kind, amount,
     due_day: Math.min(31, Math.max(1, Number(formData.get('due_day')) || 1)),
     start_ym, end_ym: months > 0 ? ymAdd(start_ym, months - 1) : null,
     note: text(formData.get('note'), 120),
   }).select('id').single()
-  if (row) await mirror(c, [{ table: 'bills', id: row.id }], 'Tambah', 'Tagihan', `${name} (${KIND_NAME[kind]}) ${fmtRp(amount)}/bulan mulai ${ymLabel(start_ym)}${months > 0 ? `, ${months} bulan` : ', terus'}`, [await curYm(), start_ym])
+  if (error || !row) { console.error('[tagihan] gagal simpan', error); return `Gagal menyimpan: ${error?.message ?? 'tidak ada data kembali'}` }
+  await mirror(c, [{ table: 'bills', id: row.id }], 'Tambah', 'Tagihan', `${name} (${KIND_NAME[kind]}) ${fmtRp(amount)}/bulan mulai ${ymLabel(start_ym)}${months > 0 ? `, ${months} bulan` : ', terus'}`, [await curYm(), start_ym])
   done()
 }
 async function upsertBM(c: NonNullable<Awaited<ReturnType<typeof me>>>, billId: string, ym: string, patch: Record<string, unknown>) {
