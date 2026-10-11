@@ -2,8 +2,9 @@ import { TileTitle } from '@/components/TileTitle'
 import { CalendarCheck, PiggyBank, Plus, Sparkles } from 'lucide-react'
 import { getCtx, loadGoals, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, goalPlan, rp, summarize, ymLabel } from '@/lib/calc'
-import { addDeposit, addGoal, deleteDeposit, deleteGoal, setGoalPlan, updateGoalTarget } from '@/lib/actions'
+import { addDeposit, setRowPocket, addGoal, deleteDeposit, deleteGoal, setGoalPlan, updateGoalTarget } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
+import { PocketInline } from '@/components/PocketInline'
 import { Stamp } from '@/components/Stamp'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
@@ -78,7 +79,8 @@ export default async function Tabungan() {
               {list.length ? (
                 <ul className="rows" style={{ marginTop: 'var(--space-3)' }}>
                   {list.map((d) => (
-                    <li key={d.id}><span className="grow"><span className="name">{d.amount < 0 ? 'Tarik' : 'Setor'}</span><span className="meta">{ymLabel(d.ym)}{pk(d.pocket_id) ? ` · ${pk(d.pocket_id)}` : ''}{d.note ? ` · ${d.note}` : ''}</span></span>
+                    <li key={d.id}><span className="grow"><span className="name">{d.amount < 0 ? 'Tarik' : 'Setor'}</span><span className="meta">{ymLabel(d.ym)}{ro && pk(d.pocket_id) ? ` · ${pk(d.pocket_id)}` : ''}{d.note ? ` · ${d.note}` : ''}</span>
+                      {!ro && pockets.length ? <PocketInline table="goal_deposits" id={d.id} value={d.pocket_id} pockets={pockets} action={setRowPocket} /> : null}</span>
                       <span className="amt">{rp(Math.abs(d.amount))}</span>
                       {!ro ? <ActionButton action={deleteDeposit} args={[d.id]} label="Hapus setoran" /> : null}</li>
                   ))}

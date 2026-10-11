@@ -3,10 +3,11 @@ import Link from 'next/link'
 import { Banknote, Calculator, Home, PiggyBank, Plus, Sparkle, TrendingUp } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
-import { addBudget, addIncome, deleteBudget, deleteIncome, resetMonth, updateBudget, updateIncome } from '@/lib/actions'
+import { addBudget, addIncome, setRowPocket, deleteBudget, deleteIncome, resetMonth, updateBudget, updateIncome } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
 import { ConfirmButton } from '@/components/ConfirmButton'
+import { PocketInline } from '@/components/PocketInline'
 import { PocketSelect } from '@/components/PocketSelect'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 import type { Grp } from '@/lib/types'
@@ -47,7 +48,8 @@ export default async function Anggaran() {
             {data.income.map((i) => (
               <li key={i.id} className="row wrap">
                 <span className="grow" style={{ minWidth: '12rem' }}><InlineField id={i.id} field="label" value={i.label} action={updateIncome} label="Nama pemasukan" disabled={ro} />
-                  <span className="meta" style={{ paddingLeft: 8 }}>{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{pk(i.pocket_id) ? ` · ${pk(i.pocket_id)}` : ''}</span></span>
+                  <span className="meta" style={{ paddingLeft: 8 }}>{i.kind === 'masuk' ? 'Uang masuk' : 'Potongan'}{ro && pk(i.pocket_id) ? ` · ${pk(i.pocket_id)}` : ''}</span>
+                  {!ro && pockets.length ? <PocketInline table="income_items" id={i.id} value={i.pocket_id} pockets={pockets} action={setRowPocket} /> : null}</span>
                 <span style={{ width: '10.5rem', flex: 'none' }}><InlineField id={i.id} field="amount" value={i.amount} money action={updateIncome} label={`Nominal ${i.label}`} disabled={ro} /></span>
                 {!ro ? <ActionButton action={deleteIncome} args={[i.id]} label={`Hapus ${i.label}`} /> : null}
               </li>

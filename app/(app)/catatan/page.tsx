@@ -6,6 +6,7 @@ import { addExpense, deleteExpense } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
 import { DatePicker } from '@/components/DatePicker'
+import { ExpenseEditor } from '@/components/ExpenseEditor'
 import { PocketSelect } from '@/components/PocketSelect'
 import { ActionButton, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
@@ -46,6 +47,7 @@ export default async function Catatan() {
                         <span className="grow"><span className="name">{e.note || label(e.budget_item_id) || 'Pengeluaran'}</span>
                           {label(e.budget_item_id) || pk(e.pocket_id) || e.transfer_id ? <span className="meta">{[label(e.budget_item_id), pk(e.pocket_id), e.transfer_id ? 'Otomatis dari Pindah dana (hapus lewat halaman Sumber dana)' : ''].filter(Boolean).join(' · ')}</span> : null}</span>
                         <span className="amt">{rp(e.amount)}</span>
+                        {ctx.canEdit && !e.transfer_id ? <ExpenseEditor expense={e} cats={pos} pockets={pockets} /> : null}
                         {ctx.canEdit && !e.transfer_id ? <ActionButton action={deleteExpense} args={[e.id]} label={`Hapus catatan ${e.note || rp(e.amount)}`} /> : null}
                       </li>
                     ))}

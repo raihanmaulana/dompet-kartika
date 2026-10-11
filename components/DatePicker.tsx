@@ -11,7 +11,7 @@ const nice = (v: string) => new Date(v + 'T00:00:00Z').toLocaleDateString('id-ID
 const addDays = (v: string, n: number) => new Date(Date.parse(v + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10)
 
 /** Pemilih tanggal bertema pengganti <input type="date">. Nilai dikirim lewat input tersembunyi bernama `name`. */
-export function DatePicker({ name, defaultValue, min, max, label }: { name: string; defaultValue: string; min?: string; max?: string; label: string }) {
+export function DatePicker({ name, defaultValue, min, max, label, inModal = false }: { name: string; defaultValue: string; min?: string; max?: string; label: string; inModal?: boolean }) {
   const [value, setValue] = useState(defaultValue)
   const [open, setOpen] = useState(false)
   const [view, setView] = useState(defaultValue.slice(0, 7))
@@ -68,8 +68,8 @@ export function DatePicker({ name, defaultValue, min, max, label }: { name: stri
       </button>
       {open ? createPortal(
         <>
-          <div className="mp-backdrop" onClick={() => close(false)} aria-hidden="true" />
-          <div className="mp-panel dp-panel" role="dialog" aria-label={`Pilih ${label.toLowerCase()}`} style={panelPos(trigger.current)}>
+          <div className="mp-backdrop" style={inModal ? { zIndex: 130 } : undefined} onClick={() => close(false)} aria-hidden="true" />
+          <div className="mp-panel dp-panel" role="dialog" aria-label={`Pilih ${label.toLowerCase()}`} style={{ ...panelPos(trigger.current), ...(inModal ? { zIndex: 131 } : {}) }}>
             <div className="mp-head">
               <button type="button" onClick={() => setView((v) => ymAdd(v, -1))} aria-label="Bulan sebelumnya" disabled={!canPrev}><ChevronLeft aria-hidden /></button>
               <b aria-live="polite">{ymLabel(view)}</b>

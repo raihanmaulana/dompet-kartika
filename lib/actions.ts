@@ -203,6 +203,41 @@ export async function addExpense(formData: FormData) {
   if (row) await mirror(c, [{ table: 'expenses', id: row.id }], 'Tambah', 'Catatan', `${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [spent_on.slice(0, 7)])
   done()
 }
+export async function updateExpense(formData: FormData) {
+  const id = text(formData.get('id'), 40)
+  const spent_on = text(formData.get('spent_on'), 10)
+  const amount = money(formData.get('amount'))
+  if (!id || !/^\d{4}-\d{2}-\d{2}$/.test(spent_on) || !isYm(spent_on.slice(0, 7)) || amount <= 0) return
+  const c = await me()
+  if (!c) return done()
+  const old = await prev(c, 'expenses', id)
+  if (!old || old.transfer_id) return // catatan biaya admin otomatis diubah lewat Pindah dana
+  const item = text(formData.get('budget_item_id'), 40)
+  let budget_item_id: string | null = null
+  if (item) {
+    const { data: b } = await c.sb.from('budget_items').select('id').eq('id', item).eq('owner_id', c.uid).maybeSingle()
+    budget_item_id = b ? (b.id as string) : null
+  }
+  const pocket_id = await pocketOf(c, formData.get('pocket_id'))
+  const note = text(formData.get('note'), 120)
+  await c.sb.from('expenses').update({ amount, spent_on, ym: spent_on.slice(0, 7), budget_item_id, pocket_id, note }).eq('id', id).eq('owner_id', c.uid)
+  await mirror(c, [{ table: 'expenses', id }], 'Ubah', 'Catatan', `${old.spent_on}: ${old.note || 'pengeluaran'} ${fmtRp(Number(old.amount))} → ${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [old.ym, spent_on.slice(0, 7)])
+  done()
+}
+/** Ganti sumber dana sebuah pemasukan atau setoran tabungan (untuk membetulkan salah pilih). */
+export async function setRowPocket(table: 'income_items' | 'goal_deposits', id: string, _field: string, value: string) {
+  if (table !== 'income_items' && table !== 'goal_deposits') return
+  const c = await me()
+  if (!c) return done()
+  const old = await prev(c, table, id)
+  if (!old) return
+  const fd = new FormData(); fd.set('p', value)
+  const pocket_id = await pocketOf(c, fd.get('p'))
+  await c.sb.from(table).update({ pocket_id }).eq('id', id).eq('owner_id', c.uid)
+  const nm = pocket_id ? ((await c.sb.from('pockets').select('name').eq('id', pocket_id).maybeSingle()).data?.name as string) ?? '' : 'tanpa sumber dana'
+  await mirror(c, [{ table, id }], 'Ubah sumber dana', table === 'income_items' ? 'Pemasukan' : 'Setoran Tabungan', `${old.ym}: ${old.label ?? 'setoran'} → ${nm}`, table === 'income_items' ? [old.ym] : [])
+  done()
+}
 export async function deleteExpense(id: string) {
   const c = await me()
   if (!c) return done()
