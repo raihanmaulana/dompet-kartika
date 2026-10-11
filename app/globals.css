@@ -434,3 +434,21 @@ ul.rows { margin: 0; padding: 0; }
 .prog-num { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 800; font-variant-numeric: tabular-nums; color: var(--color-accent-deep); line-height: 1; }
 @keyframes coinspin { from { transform: rotateY(0); } to { transform: rotateY(360deg); } }
 @media (prefers-reduced-motion: reduce) { .prog-coin { animation: none !important; } }
+
+/* ---------- v4: pemilih tanggal ---------- */
+.dp-trigger { display: flex; align-items: center; gap: var(--space-2); text-align: left; cursor: pointer; font: inherit; color: var(--color-ink); }
+.dp-trigger svg { width: 18px; height: 18px; flex: none; color: var(--color-accent-deep); }
+.dp-trigger span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-trigger .dp-caret { width: 16px; height: 16px; color: var(--color-muted); }
+.dp-trigger[aria-expanded='true'] { border-color: var(--color-focus); }
+.dp-dow, .dp-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.dp-dow { margin-bottom: 4px; }
+.dp-dow span { text-align: center; font-size: var(--text-xs); font-weight: 700; color: var(--color-muted); padding: 4px 0; }
+.dp-d { position: relative; aspect-ratio: 1; min-height: 38px; border: var(--rule-w) solid transparent; border-radius: 14px; background: transparent; font: inherit; font-weight: 600; color: var(--color-ink); cursor: pointer; transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out); }
+.dp-d:hover:not(:disabled) { background: var(--color-paper-3); }
+.dp-d:active:not(:disabled) { transform: scale(.94); }
+.dp-d.sel { background: var(--color-accent); color: var(--color-accent-ink); border-color: var(--color-accent-deep); font-weight: 800; }
+.dp-d.now::after { content: ''; position: absolute; left: 50%; bottom: 4px; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: var(--color-accent-deep); }
+.dp-d:disabled { color: var(--color-rule); cursor: not-allowed; }
+.dp-panel button:focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+.mp-head button:disabled { opacity: .35; cursor: not-allowed; }

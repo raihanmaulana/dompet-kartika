@@ -7,6 +7,7 @@ import { addExpense } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
 import { MoneyInput, QuickForm, Submit } from '@/components/Fields'
+import { DatePicker } from '@/components/DatePicker'
 import { PocketSelect } from '@/components/PocketSelect'
 
 const pct = (n: number) => `${Math.round(n * 100)}%`
@@ -88,7 +89,7 @@ export default async function Beranda() {
                     {posList.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select>
                 </label>
-                <label className="field"><span>Tanggal</span><input className="input" type="date" name="spent_on" defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} required /></label>
+                <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} /></label>
                 <PocketSelect pockets={pockets} full />
                 <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} placeholder="mis. makan siang bareng teman" /></label>
               </div>

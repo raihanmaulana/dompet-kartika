@@ -5,6 +5,7 @@ import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
 import { addExpense, deleteExpense } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
+import { DatePicker } from '@/components/DatePicker'
 import { PocketSelect } from '@/components/PocketSelect'
 import { ActionButton, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
@@ -68,7 +69,7 @@ export default async function Catatan() {
                       {pos.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                     </select>
                   </label>
-                  <label className="field"><span>Tanggal</span><input className="input" type="date" name="spent_on" defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} required /></label>
+                  <label className="field"><span>Tanggal</span><DatePicker name="spent_on" label="Tanggal" defaultValue={defDate} min={`${ctx.ym}-01`} max={`${ctx.ym}-${String(daysInMonth(ctx.ym)).padStart(2, '0')}`} /></label>
                   <PocketSelect pockets={pockets} full />
                   <label className="field full"><span>Catatan</span><input className="input" name="note" maxLength={120} placeholder="mis. kopi sore" /></label>
                 </div>

@@ -5,6 +5,7 @@ import { rp } from '@/lib/calc'
 import { addPocket, addTransfer, deletePocket, deleteTransfer, updatePocket } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
+import { DatePicker } from '@/components/DatePicker'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import type { PocketKind } from '@/lib/types'
 
@@ -50,7 +51,7 @@ export default async function SumberDana() {
                   <select className="select" name="to_pocket" defaultValue={pockets[1].id} required>{pockets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
                 </label>
                 <label className="field"><span>Jumlah</span><MoneyInput name="amount" label="Jumlah dipindah" required /></label>
-                <label className="field"><span>Tanggal</span><input className="input" type="date" name="moved_on" defaultValue={ctx.today.iso} required /></label>
+                <label className="field"><span>Tanggal</span><DatePicker name="moved_on" label="Tanggal" defaultValue={ctx.today.iso} /></label>
                 <label className="field"><span>Biaya admin (opsional)</span><MoneyInput name="fee" label="Biaya admin" /></label>
                 <label className="field"><span>Catatan</span><input className="input" name="note" maxLength={80} placeholder="mis. isi saldo GoPay" /></label>
               </div>
