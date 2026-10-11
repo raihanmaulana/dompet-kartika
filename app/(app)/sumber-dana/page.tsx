@@ -6,6 +6,8 @@ import { addPocket, addTransfer, deletePocket, deleteTransfer, updatePocket } fr
 import { PageHead } from '@/components/PageHead'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 import { DatePicker } from '@/components/DatePicker'
+import { TransferEditor } from '@/components/TransferEditor'
+import { KindSelect } from '@/components/KindSelect'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import type { PocketKind } from '@/lib/types'
 
@@ -80,6 +82,10 @@ export default async function SumberDana() {
                     <span className="grow hint" style={{ whiteSpace: 'nowrap' }}>Nama</span>
                     <span style={{ width: '10rem' }}><InlineField id={p.id} field="name" value={p.name} action={updatePocket} label={`Nama sumber dana ${p.name}`} /></span>
                   </div>
+                  <div className="row" style={{ border: 0, padding: 0 }}>
+                    <span className="grow hint" style={{ whiteSpace: 'nowrap' }}>Jenis</span>
+                    <span style={{ width: '10rem' }}><KindSelect id={p.id} value={p.kind} action={updatePocket} /></span>
+                  </div>
                   <div style={{ marginTop: 'var(--space-3)' }}>
                     <ConfirmButton action={deletePocket} args={[p.id]} trigger="Hapus sumber dana" title={`Hapus "${p.name}"?`}
                       message="Catatan yang memakai sumber ini tetap ada, hanya jadi tanpa sumber dana. Riwayat pindah dana dari/ke sumber ini ikut terhapus." />
@@ -116,6 +122,7 @@ export default async function SumberDana() {
                 <li key={t.id}>
                   <span className="grow"><span className="name">{name(t.from_pocket)} → {name(t.to_pocket)}{t.fee ? <span className="fee-tag">Fee: {rp(t.fee)}</span> : null}</span><span className="meta">{tgl(t.moved_on)}{t.note ? ` · ${t.note}` : ''}</span></span>
                   <span className="amt">{rp(t.amount)}</span>
+                  {!ro ? <TransferEditor transfer={t} pockets={pockets} /> : null}
                   {!ro ? <ActionButton action={deleteTransfer} args={[t.id]} label="Batalkan pindah dana ini" /> : null}
                 </li>
               ))}

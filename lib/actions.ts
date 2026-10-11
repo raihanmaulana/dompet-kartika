@@ -467,17 +467,18 @@ export async function addPocket(formData: FormData) {
   if (row) await mirror(c, [{ table: 'pockets', id: row.id }], 'Tambah', 'Sumber Dana', `${name} (${kind}), saldo awal ${fmtRp(opening)}`)
   done()
 }
-export async function updatePocket(id: string, field: 'name' | 'opening_balance', value: string) {
+export async function updatePocket(id: string, field: 'name' | 'opening_balance' | 'kind', value: string) {
   const c = await me()
   if (!c) return done()
-  const patch = field === 'name' ? { name: text(value, 40) } : { opening_balance: money(value) }
-  if (field === 'name' && !patch.name) return
+  if (field === 'kind' && !(POCKET_KINDS as readonly string[]).includes(value)) return
+  const patch = field === 'name' ? { name: text(value, 40) } : field === 'kind' ? { kind: value } : { opening_balance: money(value) }
+  if (field === 'name' && !(patch as { name: string }).name) return
   const old = await prev(c, 'pockets' as Table, id)
   if (!old) return
   await c.sb.from('pockets').update(patch).eq('id', id).eq('owner_id', c.uid)
   const linked = field === 'name' ? await linkedRows(c, id) : []
   await mirror(c, [{ table: 'pockets', id }, ...linked], 'Ubah', 'Sumber Dana', field === 'name'
-    ? `"${old.name}" → "${text(value, 40)}"` : `${old.name}: saldo awal ${fmtRp(Number(old.opening_balance))} → ${fmtRp(money(value))}`)
+    ? `"${old.name}" → "${text(value, 40)}"` : field === 'kind' ? `${old.name}: jenis ${old.kind} → ${value}` : `${old.name}: saldo awal ${fmtRp(Number(old.opening_balance))} → ${fmtRp(money(value))}`)
   done()
 }
 export async function deletePocket(id: string) {
@@ -517,6 +518,35 @@ export async function addTransfer(formData: FormData) {
     }
     await mirror(c, items, 'Pindah dana', 'Pindah Dana', `${moved_on}: ${names[0]} → ${names[1]} ${fmtRp(amount)}${fee > 0 ? `, biaya admin ${fmtRp(fee)}` : ''}`, [moved_on.slice(0, 7)])
   }
+  done()
+}
+export async function updateTransfer(formData: FormData) {
+  const id = text(formData.get('id'), 40)
+  const amount = money(formData.get('amount'))
+  const fee = money(formData.get('fee'))
+  const moved_on = text(formData.get('moved_on'), 10)
+  if (!id || amount <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(moved_on) || !isYm(moved_on.slice(0, 7))) return
+  const c = await me()
+  if (!c) return done()
+  const old = await prev(c, 'pocket_transfers' as Table, id)
+  if (!old) return
+  const from = await pocketOf(c, formData.get('from_pocket'))
+  const to = await pocketOf(c, formData.get('to_pocket'))
+  if (!from || !to || from === to) return
+  await c.sb.from('pocket_transfers').update({ from_pocket: from, to_pocket: to, amount, fee, moved_on, note: text(formData.get('note'), 80) }).eq('id', id).eq('owner_id', c.uid)
+  const names = await Promise.all([from, to].map(async (i) => ((await c.sb.from('pockets').select('name').eq('id', i).maybeSingle()).data?.name as string) ?? ''))
+  // Catatan biaya admin otomatis ikut disesuaikan (ubah / buat / hapus).
+  const { data: fx } = await c.sb.from('expenses').select('id').eq('owner_id', c.uid).eq('transfer_id', id).limit(1)
+  const items: { table: Table; id: string }[] = [{ table: 'pocket_transfers', id }]
+  let exId = fx?.[0]?.id as string | undefined
+  const note = `Biaya admin: ${names[0]} → ${names[1]}`
+  if (fee > 0 && exId) await c.sb.from('expenses').update({ amount: fee, spent_on: moved_on, ym: moved_on.slice(0, 7), note, pocket_id: null }).eq('id', exId).eq('owner_id', c.uid)
+  else if (fee > 0) {
+    const { data: ex } = await c.sb.from('expenses').insert({ owner_id: c.uid, ym: moved_on.slice(0, 7), spent_on: moved_on, budget_item_id: null, amount: fee, pocket_id: null, transfer_id: id, note }).select('id').single()
+    exId = ex?.id as string | undefined
+  } else if (exId) await c.sb.from('expenses').delete().eq('id', exId).eq('owner_id', c.uid)
+  if (exId) items.push({ table: 'expenses', id: exId })
+  await mirror(c, items, 'Ubah', 'Pindah Dana', `${old.moved_on}: ${fmtRp(Number(old.amount))} → ${moved_on}: ${names[0]} → ${names[1]} ${fmtRp(amount)}${fee > 0 ? `, biaya admin ${fmtRp(fee)}` : ''}`, [String(old.moved_on).slice(0, 7), moved_on.slice(0, 7)])
   done()
 }
 export async function deleteTransfer(id: string) {
