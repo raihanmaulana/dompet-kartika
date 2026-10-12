@@ -539,3 +539,22 @@ ul.rows { margin: 0; padding: 0; }
 @media (max-width: 640px) { .filters { grid-template-columns: minmax(0, 1fr); } .donut { margin-inline: auto; } }
 .d-face-bg { fill: var(--color-surface); stroke: var(--color-rule-2); stroke-width: 1; }
 .rs input[type=range]:focus-visible { outline: none; }
+
+/* ---- Filter: tombol + modal + dropdown bertema ---- */
+.filter-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+.filter-btn { display: inline-flex; align-items: center; gap: var(--space-2); }
+.filter-badge { display: inline-grid; place-items: center; min-width: 1.35rem; height: 1.35rem; padding: 0 5px; border-radius: var(--radius-pill); background: var(--color-accent); color: var(--color-surface); font-size: .75rem; font-weight: 700; }
+.filter-card { text-align: left; }
+.filter-card h2 { display: flex; align-items: center; gap: var(--space-2); justify-content: center; }
+.filter-card .f-range > span b { font-weight: 600; margin-left: var(--space-2); font-variant-numeric: tabular-nums; }
+.filter-card .rs-track { background: var(--color-paper-3); }
+.ts-btn { display: flex; align-items: center; gap: var(--space-2); width: 100%; min-height: 2.75rem; padding: 0 var(--space-3); text-align: left; font: inherit; color: inherit; background: var(--color-surface); border: var(--rule-w) solid var(--color-rule-2); border-radius: var(--radius-field); cursor: pointer; }
+.ts-btn:hover { border-color: var(--color-accent); }
+.ts-btn:focus-visible, .ts-btn[aria-expanded='true'] { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.ts-chev { flex: none; transition: transform var(--dur-fast, .15s) var(--ease-out, ease-out); }
+.ts-btn[aria-expanded='true'] .ts-chev { transform: rotate(180deg); }
+.ts-panel { position: fixed; z-index: 140; margin: 0; padding: var(--space-2); list-style: none; overflow-y: auto; background: var(--color-surface); border: var(--rule-w) solid var(--color-rule-2); border-radius: var(--radius-field); box-shadow: 0 12px 32px oklch(23% 0.04 5 / 0.18); }
+.ts-opt { display: flex; align-items: center; gap: var(--space-2); padding: 10px var(--space-3); border-radius: calc(var(--radius-field) - 4px); cursor: pointer; }
+.ts-opt.is-active { background: var(--color-paper-2); }
+.ts-opt.is-on { color: var(--color-accent); font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .ts-chev { transition: none; } }
