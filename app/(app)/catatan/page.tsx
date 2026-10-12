@@ -2,31 +2,25 @@ import { TileTitle } from '@/components/TileTitle'
 import { ListChecks, Plus, Target } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
-import { addExpense, deleteExpense } from '@/lib/actions'
+import { addExpense } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { EmptyMonth } from '@/components/EmptyMonth'
 import { DatePicker } from '@/components/DatePicker'
-import { ExpenseEditor } from '@/components/ExpenseEditor'
+import { ExpenseList } from '@/components/ExpenseList'
 import { PocketSelect } from '@/components/PocketSelect'
-import { ActionButton, MoneyInput, QuickForm, Submit } from '@/components/Fields'
+import { MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
 export const metadata = { title: 'Catatan Pengeluaran' }
-
-const tgl = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
 
 export default async function Catatan() {
   const ctx = await getCtx()
   const [data, { pockets }] = await Promise.all([loadMonth(ctx), loadPockets(ctx)])
-  const pk = (id?: string | null) => pockets.find((p) => p.id === id)?.name
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
   if (!data.income.length && !data.budget.length) {
     return (<><PageHead ctx={ctx} title="Catatan Pengeluaran" sub="Pengeluaran harian" /><div className="bento"><EmptyMonth ctx={ctx} /></div></>)
   }
   const pos = data.budget.filter((b) => b.grp === 'kebutuhan' || b.grp === 'gaya_hidup')
-  const label = (id: string | null) => pos.find((p) => p.id === id)?.label
-  const byDay = new Map<string, typeof data.expenses>()
-  for (const e of data.expenses) byDay.set(e.spent_on, [...(byDay.get(e.spent_on) ?? []), e])
   const defDate = ctx.ym === ctx.today.ym ? ctx.today.iso : `${ctx.ym}-01`
   const noPos = data.expenses.filter((e) => !e.budget_item_id).reduce((t, e) => t + e.amount, 0)
 
@@ -36,26 +30,7 @@ export default async function Catatan() {
       <div className="bento">
         <section className="tile s7" style={{ ['--i' as string]: 0 }} aria-labelledby="h-list">
           <div className="tile-head"><TileTitle id="h-list" icon={ListChecks}>Semua catatan</TileTitle><span className="tile-note">{data.expenses.length} catatan</span></div>
-          {data.expenses.length ? (
-            <div className="stack" style={{ gap: 'var(--space-5)' }}>
-              {[...byDay.entries()].map(([day, list]) => (
-                <div key={day}>
-                  <p className="hint" style={{ fontWeight: 700, marginBottom: 4 }}>{tgl(day)} · {rp(list.reduce((t, e) => t + e.amount, 0))}</p>
-                  <ul className="rows">
-                    {list.map((e) => (
-                      <li key={e.id}>
-                        <span className="grow"><span className="name">{e.note || label(e.budget_item_id) || 'Pengeluaran'}</span>
-                          {label(e.budget_item_id) || pk(e.pocket_id) || e.transfer_id ? <span className="meta">{[label(e.budget_item_id), pk(e.pocket_id), e.transfer_id ? 'Otomatis dari Pindah dana (hapus lewat halaman Sumber dana)' : ''].filter(Boolean).join(' · ')}</span> : null}</span>
-                        <span className="amt">{rp(e.amount)}</span>
-                        {ctx.canEdit && !e.transfer_id ? <ExpenseEditor expense={e} cats={pos} pockets={pockets} /> : null}
-                        {ctx.canEdit && !e.transfer_id ? <ActionButton action={deleteExpense} args={[e.id]} label={`Hapus catatan ${e.note || rp(e.amount)}`} /> : null}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
-          ) : <p className="hint">Belum ada catatan di {ymLabel(ctx.ym)}. Catatan di bulan lain tidak tampil di sini.</p>}
+          <ExpenseList expenses={data.expenses} cats={pos} pockets={pockets} canEdit={ctx.canEdit} days={daysInMonth(ctx.ym)} />
         </section>
 
         <div className="stack col5">

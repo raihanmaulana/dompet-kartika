@@ -1,6 +1,6 @@
 import { TileTitle } from '@/components/TileTitle'
 import Link from 'next/link'
-import { HeartPulse, History, PenLine, Plus, Receipt, Waypoints } from 'lucide-react'
+import { HeartPulse, PieChart, History, PenLine, Plus, Receipt, Waypoints } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
 import { addExpense } from '@/lib/actions'
@@ -9,6 +9,7 @@ import { EmptyMonth } from '@/components/EmptyMonth'
 import { MoneyInput, QuickForm, Submit } from '@/components/Fields'
 import { DatePicker } from '@/components/DatePicker'
 import { PocketSelect } from '@/components/PocketSelect'
+import { SpendDonut, type Slice } from '@/components/SpendDonut'
 
 const pct = (n: number) => `${Math.round(n * 100)}%`
 
@@ -48,6 +49,15 @@ export default async function Beranda() {
     s.rasio.simpan < 0.2 && 'tabungan + investasi di bawah 20%',
     s.rasio.cicilan > 0.3 && 'cicilan dan hutang di atas 30%',
   ].filter(Boolean) as string[]
+  const sliceMap = new Map<string, Slice>()
+  for (const e of data.expenses) {
+    const key = e.budget_item_id ?? '__none'
+    const name = e.budget_item_id ? (data.budget.find((b) => b.id === e.budget_item_id)?.label ?? 'Tanpa kategori') : 'Tanpa kategori'
+    const cur = sliceMap.get(key) ?? { key, name, amount: 0, count: 0 }
+    cur.amount += e.amount; cur.count += 1
+    sliceMap.set(key, cur)
+  }
+  const slices = [...sliceMap.values()].filter((x) => x.amount > 0).sort((x, y) => (x.key === '__none' ? 1 : 0) - (y.key === '__none' ? 1 : 0) || y.amount - x.amount)
   const defDate = ctx.ym === ctx.today.ym ? ctx.today.iso : `${ctx.ym}-01`
 
   return (
@@ -153,6 +163,11 @@ export default async function Beranda() {
               ))}
             </ul>
           ) : <p className="hint">Belum ada pengeluaran tercatat di {ymLabel(ctx.ym)}.</p>}
+        </section>
+
+        <section className="tile s12" style={{ ['--i' as string]: 6 }} aria-labelledby="h-donat">
+          <div className="tile-head"><TileTitle id="h-donat" icon={PieChart}>Duitnya keluar ke mana?</TileTitle><Link className="link" href="/catatan">Lihat catatan</Link></div>
+          {slices.length ? <SpendDonut slices={slices} total={s.spent} over={over} /> : <p className="hint">Belum ada pengeluaran di {ymLabel(ctx.ym)}. Begitu ada catatan, donatnya langsung terisi.</p>}
         </section>
       </div>
     </>

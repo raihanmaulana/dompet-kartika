@@ -494,3 +494,48 @@ ul.rows { margin: 0; padding: 0; }
   .bill-amt { width: auto; }
 }
 @media (prefers-reduced-motion: reduce) { .bill, .cc-bar .meter > i { transition: none; } }
+
+/* ---- Filter catatan + slider dua pegangan ---- */
+:root {
+  --chart-1: oklch(68% 0.16 5); --chart-2: oklch(76% 0.12 60); --chart-3: oklch(72% 0.12 300); --chart-4: oklch(72% 0.1 190);
+  --chart-5: oklch(82% 0.12 95); --chart-6: oklch(66% 0.13 250); --chart-7: oklch(70% 0.12 145); --chart-none: oklch(78% 0.03 10);
+}
+.filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-4); padding: var(--space-4); background: var(--color-paper-2); border-radius: var(--radius-field); }
+.filters .f-range, .filters .f-foot { grid-column: 1 / -1; }
+.filters .f-range > span b { font-weight: 600; margin-left: var(--space-2); font-variant-numeric: tabular-nums; }
+.f-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.rs { position: relative; height: 28px; }
+.rs-track { position: absolute; left: 0; right: 0; top: 50%; height: 6px; transform: translateY(-50%); border-radius: var(--radius-pill); background: var(--color-surface); }
+.rs-track i { position: absolute; top: 0; bottom: 0; background: var(--color-accent); border-radius: var(--radius-pill); }
+.rs input[type=range] { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
+.rs input[type=range]::-webkit-slider-runnable-track { background: none; height: 100%; }
+.rs input[type=range]::-moz-range-track { background: none; }
+.rs input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 22px; height: 22px; border-radius: 50%; background: var(--color-surface); border: 3px solid var(--color-accent); cursor: grab; margin-top: 3px; box-shadow: 0 1px 3px oklch(23% 0.04 5 / 0.25); }
+.rs input[type=range]::-moz-range-thumb { pointer-events: auto; width: 16px; height: 16px; border-radius: 50%; background: var(--color-surface); border: 3px solid var(--color-accent); cursor: grab; }
+.rs input[type=range]:focus-visible::-webkit-slider-thumb { outline: 3px solid var(--color-focus, var(--color-accent)); outline-offset: 2px; }
+.rs input[type=range]:focus-visible::-moz-range-thumb { outline: 3px solid var(--color-focus, var(--color-accent)); outline-offset: 2px; }
+
+/* ---- Donat pengeluaran ---- */
+.donut-wrap { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-6); }
+.donut { position: relative; width: min(100%, 15rem); aspect-ratio: 1; flex: none; }
+.donut > svg { width: 100%; height: 100%; transform: rotate(0deg); }
+.d-bg { stroke: var(--color-paper-3); }
+.d-seg { transition: stroke-width var(--dur-fast, .15s) var(--ease-out, ease-out); transform-origin: 21px 21px; cursor: default; }
+.d-seg:hover { stroke-width: 6.4; }
+.d-center { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; text-align: center; gap: 2px; pointer-events: none; }
+.d-center b { font-size: clamp(1rem, 2.4vw, 1.25rem); white-space: nowrap; }
+.d-center span { font-size: var(--text-sm); opacity: .7; }
+.d-face-bg { fill: var(--color-tone-peach, var(--color-paper-3)); }
+.d-face-ink { fill: var(--color-ink, currentColor); }
+.d-face-blush { fill: var(--color-accent); opacity: .35; }
+.d-face-mouth { fill: none; stroke: var(--color-ink, currentColor); stroke-width: 1.8; stroke-linecap: round; }
+.d-face { animation: d-bob 3.2s ease-in-out infinite; }
+@keyframes d-bob { 50% { transform: translateY(-2px); } }
+.d-legend { list-style: none; margin: 0; padding: 0; flex: 1 1 16rem; min-width: 0; display: grid; gap: var(--space-2); }
+.d-legend li { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) 0; border-top: var(--rule-w) solid var(--color-rule-2); min-width: 0; }
+.d-legend li:first-child { border-top: 0; }
+.d-legend i { width: 14px; height: 14px; border-radius: 5px; flex: none; }
+@media (prefers-reduced-motion: reduce) { .d-face { animation: none; } .d-seg { transition: none; } }
+@media (max-width: 640px) { .filters { grid-template-columns: minmax(0, 1fr); } .donut { margin-inline: auto; } }
+.d-face-bg { fill: var(--color-surface); stroke: var(--color-rule-2); stroke-width: 1; }
+.rs input[type=range]:focus-visible { outline: none; }
