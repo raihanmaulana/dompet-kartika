@@ -108,8 +108,13 @@ export function ExpenseList({ expenses, cats, pockets, canEdit, days }: {
         </div>, document.body) : null}
 
       {shown.length ? [...byDay.entries()].map(([day, list]) => (
-        <div key={day}>
-          <p className="hint" style={{ fontWeight: 700, marginBottom: 4 }}>{tgl(day)} · {rp(list.reduce((t, e) => t + e.amount, 0))}</p>
+        <section key={day} className="day" aria-label={tgl(day)}>
+          <div className="day-sep">
+            <span className="day-badge" aria-hidden><b>{Number(day.slice(8, 10))}</b><i>{new Date(day + 'T00:00:00Z').toLocaleDateString('id-ID', { weekday: 'short', timeZone: 'UTC' })}</i></span>
+            <span className="day-title"><b>{tgl(day)}</b><span>{list.length} catatan</span></span>
+            <span className="day-line" aria-hidden />
+            <span className="day-total">{rp(list.reduce((t, e) => t + e.amount, 0))}</span>
+          </div>
           <ul className="rows">
             {list.map((e) => (
               <li key={e.id}>
@@ -121,7 +126,7 @@ export function ExpenseList({ expenses, cats, pockets, canEdit, days }: {
               </li>
             ))}
           </ul>
-        </div>
+        </section>
       )) : <p className="hint">{expenses.length ? 'Tidak ada catatan yang cocok dengan filter ini.' : 'Belum ada catatan.'}</p>}
     </div>
   )

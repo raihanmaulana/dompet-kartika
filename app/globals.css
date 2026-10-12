@@ -558,3 +558,17 @@ ul.rows { margin: 0; padding: 0; }
 .ts-opt.is-active { background: var(--color-paper-2); }
 .ts-opt.is-on { color: var(--color-accent); font-weight: 600; }
 @media (prefers-reduced-motion: reduce) { .ts-chev { transition: none; } }
+
+/* ---- Pembatas antar tanggal di Catatan ---- */
+.day + .day { margin-top: var(--space-2); padding-top: var(--space-5); border-top: 2px dashed var(--color-rule-2); }
+.day-sep { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-2); }
+.day-badge { display: grid; place-items: center; flex: none; width: 3.1rem; padding: var(--space-2) 0; border-radius: var(--radius-field); background: var(--color-accent); color: var(--color-surface); line-height: 1; }
+.day-badge b { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.day-badge i { font-style: normal; font-size: .68rem; text-transform: uppercase; letter-spacing: .04em; margin-top: 3px; opacity: .9; }
+.day-title { display: grid; min-width: 0; }
+.day-title b { overflow-wrap: anywhere; }
+.day-title span { font-size: var(--text-sm); opacity: .7; }
+.day-line { flex: 1 1 1rem; height: 2px; border-radius: 2px; background: linear-gradient(90deg, var(--color-rule-2), transparent); min-width: 0; }
+.day-total { flex: none; padding: 4px var(--space-3); border-radius: var(--radius-pill); background: var(--color-paper-3); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 480px) { .day-line { display: none; } .day-sep { flex-wrap: wrap; } .day-title { flex: 1; } }
+.day + .day { margin-top: calc(var(--space-3) * -1); padding-top: var(--space-4); }
