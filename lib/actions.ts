@@ -547,18 +547,24 @@ export async function deletePocket(id: string) {
     `${old.name} dihapus (catatan lama tetap ada, hanya tanpa sumber dana)`)
   done()
 }
-export async function addTransfer(formData: FormData) {
+export async function addTransfer(formData: FormData): Promise<string | void> {
   const amount = money(formData.get('amount'))
   const fee = money(formData.get('fee'))
   const moved_on = text(formData.get('moved_on'), 10)
-  if (amount <= 0 || !/^\d{4}-\d{2}-\d{2}$/.test(moved_on) || !isYm(moved_on.slice(0, 7))) return
+  if (amount <= 0) return 'Isi jumlah yang dipindah dulu.'
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(moved_on) || !isYm(moved_on.slice(0, 7))) return 'Tanggal belum dipilih.'
   const c = await me()
   if (!c) return done()
   const from = await pocketOf(c, formData.get('from_pocket'))
   const to = await pocketOf(c, formData.get('to_pocket'))
-  if (!from || !to || from === to) return
-  const { data: row } = await c.sb.from('pocket_transfers').insert({ owner_id: c.uid, from_pocket: from, to_pocket: to, amount, fee, moved_on, note: text(formData.get('note'), 80) }).select('id').single()
-  if (row) {
+  if (!from || !to) return 'Pilih sumber dana asal dan tujuan.'
+  if (from === to) return 'Asal dan tujuan tidak boleh sama.'
+  const { data: row, error } = await c.sb.from('pocket_transfers').insert({ owner_id: c.uid, from_pocket: from, to_pocket: to, amount, fee, moved_on, note: text(formData.get('note'), 80) }).select('id').single()
+  if (error || !row) {
+    console.error('[pindah dana] gagal simpan', error)
+    return `Gagal menyimpan: ${error?.message ?? 'tidak ada data kembali'}. Pastikan supabase/tambah-sumber-dana.sql sudah dijalankan.`
+  }
+  {
     const names = await Promise.all([from, to].map(async (i) => ((await c.sb.from('pockets').select('name').eq('id', i).maybeSingle()).data?.name as string) ?? ''))
     const items: { table: Table; id: string }[] = [{ table: 'pocket_transfers', id: row.id }]
     // Biaya admin otomatis jadi pengeluaran di Catatan (satu transaksi: dikurangkan dari sumber lewat transfer, bukan lewat catatan ini).
