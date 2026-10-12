@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { FilterX } from 'lucide-react'
+import { Filter, FilterX } from 'lucide-react'
 import { ThemedSelect } from './ThemedSelect'
 import { ActionButton } from './Fields'
 import { ExpenseEditor } from './ExpenseEditor'
@@ -75,7 +75,7 @@ export function ExpenseList({ expenses, cats, pockets, canEdit, days }: {
     <div className="stack" style={{ gap: 'var(--space-5)' }}>
       <div className="filter-bar">
         <button type="button" ref={opener} className="btn small ghost filter-btn" onClick={() => setOpen(true)} aria-haspopup="dialog">
-          <span aria-hidden className="filter-emo">🪣</span> Filter{nActive ? <span className="filter-badge" aria-label={`${nActive} filter aktif`}>{nActive}</span> : null}
+          <Filter aria-hidden size={16} /> Filter{nActive ? <span className="filter-badge" aria-label={`${nActive} filter aktif`}>{nActive}</span> : null}
         </button>
         <span className="hint" aria-live="polite">{active ? `${shown.length} dari ${expenses.length} catatan · ${rp(total)}` : `${expenses.length} catatan · ${rp(total)}`}</span>
         {active ? <button type="button" className="btn small ghost" onClick={reset}><FilterX aria-hidden size={16} /> Reset</button> : null}
@@ -83,7 +83,7 @@ export function ExpenseList({ expenses, cats, pockets, canEdit, days }: {
       {open ? createPortal(
         <div className="confirm" onMouseDown={(e) => { if (e.target === e.currentTarget) closeModal() }}>
           <div className="confirm-card edit-card filter-card" ref={card} role="dialog" aria-modal="true" aria-labelledby="flt-t">
-            <h2 id="flt-t"><span aria-hidden>🪣</span> Filter catatan</h2>
+            <h2 id="flt-t"><Filter aria-hidden size={20} /> Filter catatan</h2>
             <div className="stack">
               <div className="field"><span>Kategori</span>
                 <ThemedSelect label="Kategori" value={cat} onChange={setCat} options={[{ value: '', label: 'Semua kategori' }, ...cats.map((c) => ({ value: c.id, label: c.label })), { value: NONE, label: 'Tanpa kategori' }]} />
