@@ -572,3 +572,15 @@ ul.rows { margin: 0; padding: 0; }
 .day-total { flex: none; padding: 4px var(--space-3); border-radius: var(--radius-pill); background: var(--color-paper-3); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 @media (max-width: 480px) { .day-line { display: none; } .day-sep { flex-wrap: wrap; } .day-title { flex: 1; } }
 .day + .day { margin-top: calc(var(--space-3) * -1); padding-top: var(--space-4); }
+.form-msg.warn { background: var(--color-warn-soft); color: var(--color-warn-ink); }
+
+.pay-list { display: grid; gap: var(--space-2); }
+.pay-row { display: flex; align-items: center; gap: var(--space-3); font-size: var(--text-sm); }
+
+/* ---- Peringatan di Beranda ---- */
+.alert-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.alert { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-radius: var(--radius-field); background: var(--color-warn-soft); color: var(--color-warn-ink); }
+.alert.over { background: var(--color-over-soft); color: var(--color-over); }
+.alert a { color: inherit; text-decoration: none; font-weight: 600; overflow-wrap: anywhere; }
+.alert a:hover { text-decoration: underline; }
+.alert-dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex: none; }

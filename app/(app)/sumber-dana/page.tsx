@@ -1,12 +1,14 @@
-import { ArrowLeftRight, Banknote, Landmark, Plus, Smartphone, Wallet, History, Coins } from 'lucide-react'
+import { ArrowLeftRight, Scale, Banknote, Landmark, Plus, Smartphone, Wallet, History, Coins } from 'lucide-react'
 import { TileTitle } from '@/components/TileTitle'
 import { getCtx, loadPockets } from '@/lib/data'
 import { rp } from '@/lib/calc'
-import { addPocket, addTransfer, deletePocket, deleteTransfer, updatePocket } from '@/lib/actions'
+import { addPocket, addTransfer, deleteAdjustment, deletePocket, reconcilePocket, deleteTransfer, updatePocket } from '@/lib/actions'
 import { PageHead } from '@/components/PageHead'
 import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 import { DatePicker } from '@/components/DatePicker'
 import { TransferEditor } from '@/components/TransferEditor'
+import { ModalForm } from '@/components/ModalForm'
+import { ReconcileFields } from '@/components/ReconcileFields'
 import { KindSelect } from '@/components/KindSelect'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import type { PocketKind } from '@/lib/types'
@@ -21,7 +23,7 @@ const tgl = (iso: string) => new Date(iso + 'T00:00:00Z').toLocaleDateString('id
 
 export default async function SumberDana() {
   const ctx = await getCtx()
-  const { pockets, transfers } = await loadPockets(ctx)
+  const { pockets, transfers, adjustments } = await loadPockets(ctx)
   const ro = !ctx.canEdit
   const total = pockets.reduce((t, p) => t + p.saldo, 0)
   const name = (id: string) => pockets.find((p) => p.id === id)?.name ?? 'Sumber dihapus'
@@ -71,7 +73,15 @@ export default async function SumberDana() {
                 <span className="chip">{label}</span>
               </div>
               <p className="big" style={{ fontSize: '2.1rem' }}>{rp(p.saldo)}</p>
-              {p.saldo < 0 ? <p className="hint" style={{ color: 'var(--color-over)' }}>Saldo minus. Cek lagi catatan atau saldo awalnya.</p> : null}
+              {p.saldo < 0 ? <p className="form-msg err">Saldo minus. Mungkin ada pemasukan atau pindah dana yang belum dicatat. Coba "Samakan saldo".</p> : null}
+              {!ro ? (
+                <div style={{ marginTop: 'var(--space-2)' }}>
+                  <ModalForm trigger={<><Scale aria-hidden size={16} /> Samakan saldo</>} triggerClass="btn small ghost" title={`Samakan saldo ${p.name}`} submitText="Samakan" action={reconcilePocket}
+                    intro="Kalau saldo di aplikasi bank atau e-wallet berbeda, ketik saldo aslinya. Selisihnya dicatat sebagai satu penyesuaian.">
+                    <ReconcileFields id={p.id} current={p.saldo} />
+                  </ModalForm>
+                </div>
+              ) : null}
               <div className="row" style={{ border: 0, padding: 0, marginTop: 'var(--space-3)' }}>
                 <span className="grow hint" style={{ whiteSpace: 'nowrap' }}>Saldo awal</span>
                 <span style={{ width: '10rem' }}><InlineField id={p.id} field="opening_balance" value={p.opening_balance} money action={updatePocket} label={`Saldo awal ${p.name}`} disabled={ro} /></span>
@@ -124,6 +134,21 @@ export default async function SumberDana() {
                   <span className="amt">{rp(t.amount)}</span>
                   {!ro ? <TransferEditor transfer={t} pockets={pockets} /> : null}
                   {!ro ? <ActionButton action={deleteTransfer} args={[t.id]} label="Batalkan pindah dana ini" /> : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        {adjustments.length ? (
+          <section className="tile s12" style={{ ['--i' as string]: i++ }} aria-labelledby="h-adj">
+            <div className="tile-head"><TileTitle id="h-adj" icon={Scale}>Riwayat penyesuaian saldo</TileTitle><span className="tile-note">{adjustments.length} kali</span></div>
+            <ul className="rows">
+              {adjustments.slice(0, 20).map((a) => (
+                <li key={a.id}>
+                  <span className="grow"><span className="name">{name(a.pocket_id)}</span><span className="meta">{tgl(a.adjusted_on)}{a.note ? ` · ${a.note}` : ''}</span></span>
+                  <span className={a.amount < 0 ? 'amt minus' : 'amt'}>{a.amount < 0 ? '−' : '+'}{rp(Math.abs(a.amount))}</span>
+                  {!ro ? <ActionButton action={deleteAdjustment} args={[a.id]} label="Batalkan penyesuaian ini" /> : null}
                 </li>
               ))}
             </ul>

@@ -1,5 +1,5 @@
 // Data contoh untuk DEMO_MODE=1 (hanya untuk melihat tampilan tanpa database).
-import type { Bill, BillMonth, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, Pocket, Transfer } from './types.ts'
+import type { BillPayment, Recurring, Bill, BillMonth, BudgetItem, Expense, Goal, GoalDeposit, IncomeItem, Pocket, Transfer } from './types.ts'
 
 export const demoIncome = (ym: string): IncomeItem[] => [
   { id: 'i1', ym, label: 'Gaji kotor', kind: 'masuk', amount: 6_500_000, sort: 0, pocket_id: 'p1' },
@@ -54,4 +54,11 @@ export const demoPockets: Pocket[] = [
 ]
 export const demoTransfers: Transfer[] = [
   { id: 't1', from_pocket: 'p1', to_pocket: 'p3', amount: 300_000, fee: 2_500, moved_on: '2026-10-03', note: 'Isi saldo untuk jajan' },
+]
+
+export const demoPayments: BillPayment[] = [
+  { id: 'bp1', bill_id: 'l5', ym: '2026-10', amount: 600_000, pocket_id: 'p1', paid_on: '2026-10-05' },
+]
+export const demoRecurring: Recurring[] = [
+  { id: 'r1', note: 'Uang kos', amount: 900_000, category_label: 'Kos / kontribusi rumah', pocket_id: 'p1', day: 1, start_ym: '2026-10', end_ym: null, skipped_ym: [] },
 ]

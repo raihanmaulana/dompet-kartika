@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 import { isYm, planItems, ymAdd, ymLabel, ymOfDate } from './calc.ts'
 import { DEMO } from './data.ts'
+import { queryPockets } from './pockets.ts'
 import { supabaseServer } from './supabase/server.ts'
 import { fmtRp, fullSyncEvents, logEvent, pocketEvents, postEvents, queue, rowEvent, sheetsEnabled, summaryEvent, type SheetEvent, type Table } from './sheets.ts'
 
@@ -52,6 +53,15 @@ async function prev(c: C, table: Table, id: string): Promise<Record<string, any>
   return data as Record<string, any> | null
 }
 /** Sumber dana yang dipilih di formulir; hanya diterima kalau memang milik pengguna ini. */
+/** Setelah menyimpan: kalau saldo sumber dana jadi minus, kembalikan peringatan (data tetap tersimpan). */
+async function lowBalance(c: C, pocketId: string | null | undefined): Promise<string | void> {
+  if (!pocketId) return
+  try {
+    const { pockets } = await queryPockets(c.sb, c.uid, ymOfDate(new Date()))
+    const p = pockets.find((x) => x.id === pocketId)
+    if (p && p.saldo < 0) return `⚠ Tersimpan, tapi saldo ${p.name} sekarang minus ${fmtRp(-p.saldo)}. Cek apakah ada pemasukan atau pindah dana yang belum dicatat.`
+  } catch { /* peringatan hanya bonus */ }
+}
 async function pocketOf(c: C, raw: FormDataEntryValue | null): Promise<string | null> {
   const id = text(raw, 40)
   if (!id) return null
@@ -187,7 +197,7 @@ export async function deleteBudget(id: string) {
 }
 
 // ---------- Catatan pengeluaran ----------
-export async function addExpense(formData: FormData) {
+export async function addExpense(formData: FormData): Promise<string | void> {
   const spent_on = text(formData.get('spent_on'), 10)
   const amount = money(formData.get('amount'))
   if (!/^\d{4}-\d{2}-\d{2}$/.test(spent_on) || !isYm(spent_on.slice(0, 7)) || amount <= 0) return
@@ -202,6 +212,7 @@ export async function addExpense(formData: FormData) {
   }).select('id').single()
   if (row) await mirror(c, [{ table: 'expenses', id: row.id }], 'Tambah', 'Catatan', `${spent_on}: ${note || 'pengeluaran'} ${fmtRp(amount)}`, [spent_on.slice(0, 7)])
   done()
+  return lowBalance(c, pocket_id)
 }
 export async function updateExpense(formData: FormData) {
   const id = text(formData.get('id'), 40)
@@ -243,6 +254,11 @@ export async function deleteExpense(id: string) {
   if (!c) return done()
   const old = await prev(c, 'expenses', id)
   await c.sb.from('expenses').delete().eq('id', id).eq('owner_id', c.uid)
+  if (old?.recurring_id) {
+    // jangan dibuat ulang otomatis untuk bulan ini
+    const r = (await c.sb.from('recurring_expenses').select('skipped_ym').eq('id', old.recurring_id).maybeSingle()).data
+    if (r) await c.sb.from('recurring_expenses').update({ skipped_ym: [...new Set([...(r.skipped_ym ?? []), old.ym])] }).eq('id', old.recurring_id).eq('owner_id', c.uid)
+  }
   if (old) await mirror(c, [{ table: 'expenses', id }], 'Hapus', 'Catatan', `${old.spent_on}: ${old.note || 'pengeluaran'} ${fmtRp(Number(old.amount))}`, [old.ym])
   done()
 }
@@ -281,63 +297,60 @@ async function upsertBM(c: NonNullable<Awaited<ReturnType<typeof me>>>, billId: 
     ...patch,
   })
 }
-export async function setBillPaid(billId: string, ym: string, paid: boolean) {
-  if (!isYm(ym)) return
-  const c = await me()
-  if (!c) return done()
-  const full = (await c.sb.from('bills').select('name,amount,kind').eq('id', billId).eq('owner_id', c.uid).maybeSingle()).data
-  if (!full) return
-  const ov = (await c.sb.from('bill_months').select('amount_override').eq('bill_id', billId).eq('ym', ym).maybeSingle()).data?.amount_override
-  await upsertBM(c, billId, ym, { paid, paid_at: paid ? new Date().toISOString() : null, ...(full.kind === 'kartu' ? { paid_amount: paid ? Number(ov ?? full.amount) : 0 } : {}) })
-  const b = full
-  await mirror(c, [{ table: 'bill_months', id: billId, key: `${billId}|${ym}` }], paid ? 'Tandai lunas' : 'Batalkan lunas', 'Status Tagihan', `${ymLabel(ym)}: ${b?.name ?? ''}`, [ym])
-  done()
-}
-/** Kartu kredit: catat pembayaran (ditambahkan ke yang sudah dibayar bulan itu). */
+/** Catat pembayaran tagihan/cicilan/kartu kredit (boleh dicicil) dan pilih dibayar dari sumber dana mana. */
 export async function payBill(formData: FormData): Promise<string | void> {
   const billId = text(formData.get('bill_id'), 40)
   const ym = text(formData.get('ym'), 7)
   const add = money(formData.get('amount'))
+  const paid_on = text(formData.get('paid_on'), 10) || ymOfDate(new Date()).iso
   if (!billId || !isYm(ym)) return
   if (add <= 0) return 'Isi nominal pembayarannya dulu.'
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paid_on)) return 'Tanggal bayar belum valid.'
   const c = await me()
   if (!c) return done()
   const { data: b } = await c.sb.from('bills').select('name,amount').eq('id', billId).eq('owner_id', c.uid).maybeSingle()
   if (!b) return
-  const cur = (await c.sb.from('bill_months').select('amount_override,paid_amount').eq('bill_id', billId).eq('ym', ym).maybeSingle()).data
+  const pocket_id = await pocketOf(c, formData.get('pocket_id'))
+  const { error } = await c.sb.from('bill_payments').insert({ owner_id: c.uid, bill_id: billId, ym, amount: add, pocket_id, paid_on })
+  if (error) { console.error('[bayar tagihan]', error); return `Gagal menyimpan: ${error.message}. Pastikan supabase/tambah-pembayaran-berulang.sql sudah dijalankan.` }
+  const cur = (await c.sb.from('bill_months').select('amount_override,paid_amount,paid').eq('bill_id', billId).eq('ym', ym).maybeSingle()).data
   const total = Number(cur?.amount_override ?? b.amount)
-  const was = Number(cur?.paid_amount ?? 0)
+  const was = Math.max(Number(cur?.paid_amount ?? 0), cur?.paid ? total : 0)
   const now = Math.min(was + add, 100_000_000_000)
   const paid = total > 0 && now >= total
   await upsertBM(c, billId, ym, { paid_amount: now, paid, paid_at: paid ? new Date().toISOString() : null })
-  await mirror(c, [{ table: 'bill_months', id: billId, key: `${billId}|${ym}` }], 'Bayar kartu kredit', 'Status Tagihan', `${ymLabel(ym)}: ${b.name} +${fmtRp(add)} (total ${fmtRp(now)} dari ${fmtRp(total)})`, [ym])
+  const pname = pocket_id ? ((await c.sb.from('pockets').select('name').eq('id', pocket_id).maybeSingle()).data?.name ?? '') : ''
+  await mirror(c, [{ table: 'bill_months', id: billId, key: `${billId}|${ym}` }], 'Bayar tagihan', 'Status Tagihan', `${ymLabel(ym)}: ${b.name} +${fmtRp(add)}${pname ? ` dari ${pname}` : ''} (total ${fmtRp(now)} dari ${fmtRp(total)})`, [ym])
   done()
+  return lowBalance(c, pocket_id)
 }
-/** Koreksi total yang sudah dibayar bulan itu (kartu kredit). */
-export async function setBillPaidAmount(key: string, _field: string, value: string) {
-  const [billId, ym] = key.split('|')
-  if (!billId || !isYm(ym)) return
+/** Batalkan status bayar bulan itu: semua pembayarannya dihapus, saldo sumber dana kembali. */
+export async function undoBillPaid(billId: string, ym: string) {
+  if (!isYm(ym)) return
   const c = await me()
   if (!c) return done()
-  const { data: b } = await c.sb.from('bills').select('name,amount').eq('id', billId).eq('owner_id', c.uid).maybeSingle()
+  const b = (await c.sb.from('bills').select('name').eq('id', billId).eq('owner_id', c.uid).maybeSingle()).data
   if (!b) return
-  const cur = (await c.sb.from('bill_months').select('amount_override,paid_amount').eq('bill_id', billId).eq('ym', ym).maybeSingle()).data
-  const total = Number(cur?.amount_override ?? b.amount)
-  const v = money(value)
-  const paid = total > 0 && v >= total
-  await upsertBM(c, billId, ym, { paid_amount: v, paid, paid_at: paid ? new Date().toISOString() : null })
-  await mirror(c, [{ table: 'bill_months', id: billId, key: `${billId}|${ym}` }], 'Ubah total dibayar', 'Status Tagihan', `${ymLabel(ym)}: ${b.name} dibayar ${fmtRp(Number(cur?.paid_amount ?? 0))} → ${fmtRp(v)}`, [ym])
+  await c.sb.from('bill_payments').delete().eq('owner_id', c.uid).eq('bill_id', billId).eq('ym', ym)
+  await upsertBM(c, billId, ym, { paid: false, paid_at: null, paid_amount: 0 })
+  await mirror(c, [{ table: 'bill_months', id: billId, key: `${billId}|${ym}` }], 'Batalkan bayar', 'Status Tagihan', `${ymLabel(ym)}: ${b.name}`, [ym])
   done()
 }
-/** Ubah pembayaran minimum kartu kredit (berlaku seterusnya). */
-export async function setBillMin(id: string, _field: string, value: string) {
+/** Hapus satu pembayaran (salah input). */
+export async function deleteBillPayment(id: string) {
   const c = await me()
   if (!c) return done()
-  const { data: b } = await c.sb.from('bills').select('name,amount,min_payment').eq('id', id).eq('owner_id', c.uid).maybeSingle()
-  if (!b) return
-  const v = Math.min(money(value), Number(b.amount))
-  await c.sb.from('bills').update({ min_payment: v }).eq('id', id).eq('owner_id', c.uid)
-  await mirror(c, [{ table: 'bills', id }], 'Ubah minimum bayar', 'Tagihan', `${b.name}: minimum ${fmtRp(Number(b.min_payment ?? 0))} → ${fmtRp(v)}`, [await curYm()])
+  const { data: p } = await c.sb.from('bill_payments').select('*').eq('id', id).eq('owner_id', c.uid).maybeSingle()
+  if (!p) return
+  const { data: bill } = await c.sb.from('bills').select('name,amount').eq('id', p.bill_id).maybeSingle()
+  await c.sb.from('bill_payments').delete().eq('id', id).eq('owner_id', c.uid)
+  const cur = (await c.sb.from('bill_months').select('amount_override,paid_amount,paid').eq('bill_id', p.bill_id).eq('ym', p.ym).maybeSingle()).data
+  const total = Number(cur?.amount_override ?? bill?.amount ?? 0)
+  const was = Math.max(Number(cur?.paid_amount ?? 0), cur?.paid ? total : 0)
+  const now = Math.max(0, was - Number(p.amount))
+  const paid = total > 0 && now >= total
+  await upsertBM(c, p.bill_id, p.ym, { paid_amount: now, paid, paid_at: paid ? new Date().toISOString() : null })
+  await mirror(c, [{ table: 'bill_months', id: p.bill_id, key: `${p.bill_id}|${p.ym}` }], 'Hapus pembayaran', 'Status Tagihan', `${ymLabel(p.ym)}: ${bill?.name ?? ''} −${fmtRp(Number(p.amount))}`, [p.ym])
   done()
 }
 export async function setBillSkipped(billId: string, ym: string, skipped: boolean) {
@@ -451,7 +464,7 @@ export async function deleteGoal(id: string) {
   if (old) await mirror(c, [{ table: 'goals', id }], 'Hapus', 'Target Tabungan', `${old.name} (beserta setorannya)`, [], [{ op: 'deleteWhere', tab: 'Setoran Tabungan', col: 'Id target', value: id }])
   done()
 }
-export async function addDeposit(formData: FormData) {
+export async function addDeposit(formData: FormData): Promise<string | void> {
   const goal_id = text(formData.get('goal_id'), 40)
   const ym = text(formData.get('ym'), 7)
   let amount = money(formData.get('amount'))
@@ -466,6 +479,7 @@ export async function addDeposit(formData: FormData) {
   const gname = (await c.sb.from('goals').select('name').eq('id', goal_id).maybeSingle()).data?.name ?? ''
   if (row) await mirror(c, [{ table: 'goal_deposits', id: row.id }], amount < 0 ? 'Tarik' : 'Setor', 'Setoran Tabungan', `${ymLabel(ym)}: ${gname} ${fmtRp(Math.abs(amount))}`)
   done()
+  return amount > 0 ? lowBalance(c, pocket_id) : undefined
 }
 /** Atur rencana setoran bulan ini untuk sebuah target (disimpan sebagai item anggaran Tabungan bulan itu). */
 export async function setGoalPlan(goalId: string, _field: string, value: string) {
@@ -579,6 +593,7 @@ export async function addTransfer(formData: FormData): Promise<string | void> {
     await mirror(c, items, 'Pindah dana', 'Pindah Dana', `${moved_on}: ${names[0]} → ${names[1]} ${fmtRp(amount)}${fee > 0 ? `, biaya admin ${fmtRp(fee)}` : ''}`, [moved_on.slice(0, 7)])
   }
   done()
+  return lowBalance(c, from)
 }
 export async function updateTransfer(formData: FormData) {
   const id = text(formData.get('id'), 40)
@@ -637,7 +652,11 @@ export async function resetMonth(ym: string) {
   const trIds = (tr ?? []).map((r) => r.id as string)
   const blIds = (bl ?? []).map((r) => r.id as string)
   await sb.from('pocket_transfers').delete().eq('owner_id', uid).gte('moved_on', first).lt('moved_on', next) // ikut menghapus catatan biaya admin-nya
-  for (const t of ['expenses', 'income_items', 'budget_items', 'goal_deposits', 'bill_months'] as const) await sb.from(t).delete().eq('owner_id', uid).eq('ym', ym)
+  for (const t of ['expenses', 'income_items', 'budget_items', 'goal_deposits', 'bill_months', 'bill_payments'] as const) await sb.from(t).delete().eq('owner_id', uid).eq('ym', ym)
+  // pengeluaran berulang jangan dibuat ulang otomatis di bulan yang baru dikosongkan
+  for (const r of (await sb.from('recurring_expenses').select('id,skipped_ym').eq('owner_id', uid).lte('start_ym', ym)).data ?? []) {
+    await sb.from('recurring_expenses').update({ skipped_ym: [...new Set([...(r.skipped_ym ?? []), ym])] }).eq('id', r.id).eq('owner_id', uid)
+  }
   if (blIds.length) await sb.from('bills').delete().eq('owner_id', uid).eq('start_ym', ym)
   const extra: SheetEvent[] = ['Pemasukan', 'Anggaran', 'Catatan', 'Setoran Tabungan', 'Status Tagihan'].map((tab) => ({ op: 'deleteWhere', tab, col: 'Bulan', value: ym }) as SheetEvent)
   for (const id of blIds) extra.push({ op: 'deleteWhere', tab: 'Status Tagihan', col: 'Id tagihan', value: id })
@@ -695,4 +714,87 @@ export async function syncAll(_prev: SyncState, _fd: FormData): Promise<SyncStat
     total += r.n ?? 0
   }
   return { ok: true, message: `Berhasil. ${total} langkah sinkron terkirim ke Google Sheet.` }
+}
+
+/** Ubah pembayaran minimum kartu kredit (berlaku seterusnya). */
+export async function setBillMin(id: string, _field: string, value: string) {
+  const c = await me()
+  if (!c) return done()
+  const { data: b } = await c.sb.from('bills').select('name,amount,min_payment').eq('id', id).eq('owner_id', c.uid).maybeSingle()
+  if (!b) return
+  const v = Math.min(money(value), Number(b.amount))
+  await c.sb.from('bills').update({ min_payment: v }).eq('id', id).eq('owner_id', c.uid)
+  await mirror(c, [{ table: 'bills', id }], 'Ubah minimum bayar', 'Tagihan', `${b.name}: minimum ${fmtRp(Number(b.min_payment ?? 0))} → ${fmtRp(v)}`, [await curYm()])
+  done()
+}
+
+// ---------- Samakan saldo (rekonsiliasi) ----------
+export async function reconcilePocket(formData: FormData): Promise<string | void> {
+  const id = text(formData.get('id'), 40)
+  const raw = String(formData.get('actual') ?? '').trim()
+  if (!id) return
+  if (!/\d/.test(raw)) return 'Isi saldo yang sebenarnya dulu.'
+  const actual = (raw.startsWith('-') ? -1 : 1) * money(raw)
+  const c = await me()
+  if (!c) return done()
+  const today = ymOfDate(new Date())
+  const { pockets } = await queryPockets(c.sb, c.uid, today)
+  const p = pockets.find((x) => x.id === id)
+  if (!p) return
+  const diff = actual - p.saldo
+  if (diff === 0) return 'Saldonya sudah sama, tidak ada yang perlu disesuaikan.'
+  const { error } = await c.sb.from('pocket_adjustments').insert({ owner_id: c.uid, pocket_id: id, amount: diff, note: text(formData.get('note'), 80), adjusted_on: today.iso })
+  if (error) { console.error('[samakan saldo]', error); return `Gagal menyimpan: ${error.message}. Pastikan supabase/tambah-pembayaran-berulang.sql sudah dijalankan.` }
+  await mirror(c, [], 'Samakan saldo', 'Sumber Dana', `${p.name}: ${fmtRp(p.saldo)} → ${fmtRp(actual)} (penyesuaian ${diff > 0 ? '+' : '−'}${fmtRp(Math.abs(diff))})`)
+  done()
+}
+export async function deleteAdjustment(id: string) {
+  const c = await me()
+  if (!c) return done()
+  const { data: a } = await c.sb.from('pocket_adjustments').select('amount,pocket_id').eq('id', id).eq('owner_id', c.uid).maybeSingle()
+  if (!a) return
+  await c.sb.from('pocket_adjustments').delete().eq('id', id).eq('owner_id', c.uid)
+  const p = (await c.sb.from('pockets').select('name').eq('id', a.pocket_id).maybeSingle()).data
+  await mirror(c, [], 'Hapus penyesuaian', 'Sumber Dana', `${p?.name ?? ''}: penyesuaian ${fmtRp(Number(a.amount))} dibatalkan`)
+  done()
+}
+
+// ---------- Pengeluaran berulang ----------
+export async function addRecurring(formData: FormData): Promise<string | void> {
+  const note = text(formData.get('note'), 80)
+  const amount = money(formData.get('amount'))
+  const start_ym = text(formData.get('start_ym'), 7)
+  const endRaw = text(formData.get('end_ym'), 7)
+  if (!note) return 'Isi namanya dulu, mis. "Uang kos".'
+  if (amount <= 0) return 'Isi nominalnya dulu.'
+  if (!isYm(start_ym)) return 'Bulan mulai tidak valid.'
+  if (endRaw && (!isYm(endRaw) || endRaw < start_ym)) return 'Bulan berakhir harus setelah bulan mulai.'
+  const c = await me()
+  if (!c) return done()
+  const pocket_id = await pocketOf(c, formData.get('pocket_id'))
+  const { error } = await c.sb.from('recurring_expenses').insert({
+    owner_id: c.uid, note, amount, start_ym, end_ym: endRaw || null, pocket_id,
+    day: Math.min(31, Math.max(1, Number(formData.get('day')) || 1)), category_label: text(formData.get('category_label'), 60),
+  })
+  if (error) { console.error('[berulang]', error); return `Gagal menyimpan: ${error.message}. Pastikan supabase/tambah-pembayaran-berulang.sql sudah dijalankan.` }
+  await mirror(c, [], 'Tambah berulang', 'Catatan', `${note} ${fmtRp(amount)} tiap bulan mulai ${ymLabel(start_ym)}`)
+  done()
+}
+export async function setRecurringField(id: string, field: 'amount' | 'day' | 'note', value: string) {
+  const c = await me()
+  if (!c) return done()
+  const patch = field === 'amount' ? { amount: Math.max(1, money(value)) } : field === 'day' ? { day: Math.min(31, Math.max(1, Number(value) || 1)) } : { note: text(value, 80) }
+  if (field === 'note' && !(patch as { note: string }).note) return
+  await c.sb.from('recurring_expenses').update(patch).eq('id', id).eq('owner_id', c.uid)
+  await mirror(c, [], 'Ubah berulang', 'Catatan', `${field} → ${value} (berlaku untuk bulan yang belum dibuat)`)
+  done()
+}
+export async function deleteRecurring(id: string) {
+  const c = await me()
+  if (!c) return done()
+  const old = (await c.sb.from('recurring_expenses').select('note').eq('id', id).eq('owner_id', c.uid).maybeSingle()).data
+  if (!old) return
+  await c.sb.from('recurring_expenses').delete().eq('id', id).eq('owner_id', c.uid)
+  await mirror(c, [], 'Hapus berulang', 'Catatan', `${old.note} tidak diulang lagi (catatan lama tetap ada)`)
+  done()
 }

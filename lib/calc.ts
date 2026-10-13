@@ -72,9 +72,10 @@ export function billRowsFor(bills: Bill[], bms: BillMonth[], ym: string): BillRo
     const amount = bm?.amount_override ?? bill.amount
     const monthsAfter = bill.end_ym ? ymDiff(bill.end_ym, ym) : null
     const isCard = bill.kind === 'kartu'
-    const paidAmount = isCard ? Math.max(0, bm?.paid_amount ?? 0) : bm?.paid ? amount : 0
+    const rawPaid = Math.max(0, bm?.paid_amount ?? 0)
+    const paidAmount = isCard ? rawPaid : bm?.paid ? Math.max(amount, rawPaid) : rawPaid
     const minPayment = isCard ? Math.min(bill.min_payment ?? 0, amount) : 0
-    const paid = isCard ? amount > 0 && paidAmount >= amount : !!bm?.paid
+    const paid = isCard ? amount > 0 && paidAmount >= amount : !!bm?.paid || (amount > 0 && paidAmount >= amount)
     rows.push({
       bill,
       amount,
@@ -126,7 +127,7 @@ export function summarize(
   const live = rows.filter((r) => !r.skipped)
   const tagihan = live.reduce((s, r) => s + r.amount, 0)
   const cicilanHutang = live.filter((r) => r.bill.kind !== 'tagihan').reduce((s, r) => s + r.amount, 0)
-  const tagihanBelumBayar = live.filter((r) => !r.paid).reduce((s, r) => s + (r.isCard ? Math.max(0, r.amount - r.paidAmount) : r.amount), 0)
+  const tagihanBelumBayar = live.filter((r) => !r.paid).reduce((s, r) => s + Math.max(0, r.amount - r.paidAmount), 0)
   const grp: Record<Grp, number> = { kebutuhan: 0, gaya_hidup: 0, tabungan: 0, investasi: 0 }
   for (const b of budget) grp[b.grp] += b.amount
   const uangBelanja = bersih - tagihan - grp.tabungan - grp.investasi
@@ -210,12 +211,16 @@ export function pocketBalances(
   deposits: { ym: string; amount: number; pocket_id?: string | null }[],
   transfers: Transfer[],
   today: { ym: string; iso: string },
+  payments: { paid_on: string; amount: number; pocket_id?: string | null }[] = [],
+  adjustments: { adjusted_on: string; amount: number; pocket_id?: string | null }[] = [],
 ): PocketView[] {
   const bal = new Map<string, number>(pockets.map((p) => [p.id, p.opening_balance]))
   const add = (id: string | null | undefined, n: number) => { if (id && bal.has(id)) bal.set(id, bal.get(id)! + n) }
   for (const i of income) if (i.ym <= today.ym) add(i.pocket_id, i.kind === 'masuk' ? i.amount : -i.amount)
   for (const e of expenses) if (e.spent_on <= today.iso) add(e.pocket_id, -e.amount)
   for (const d of deposits) if (d.ym <= today.ym) add(d.pocket_id, -d.amount)
+  for (const p of payments) if (p.paid_on <= today.iso) add(p.pocket_id, -p.amount)
+  for (const a of adjustments) if (a.adjusted_on <= today.iso) add(a.pocket_id, a.amount)
   for (const t of transfers) if (t.moved_on <= today.iso) { add(t.from_pocket, -(t.amount + (t.fee ?? 0))); add(t.to_pocket, t.amount) }
   return pockets.map((p) => ({ ...p, saldo: bal.get(p.id) ?? 0 }))
 }

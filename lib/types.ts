@@ -3,7 +3,7 @@ export type BillKind = 'tagihan' | 'cicilan' | 'hutang' | 'kartu'
 
 export type IncomeItem = { id: string; ym: string; label: string; kind: 'masuk' | 'potong'; amount: number; sort: number; pocket_id?: string | null }
 export type BudgetItem = { id: string; ym: string; grp: Grp; label: string; amount: number; sort: number }
-export type Expense = { id: string; ym: string; spent_on: string; budget_item_id: string | null; note: string; amount: number; pocket_id?: string | null; transfer_id?: string | null }
+export type Expense = { id: string; ym: string; spent_on: string; budget_item_id: string | null; note: string; amount: number; pocket_id?: string | null; transfer_id?: string | null; recurring_id?: string | null }
 export type Bill = { id: string; name: string; kind: BillKind; amount: number; due_day: number; start_ym: string; end_ym: string | null; note: string; min_payment?: number }
 export type BillMonth = { bill_id: string; ym: string; amount_override: number | null; skipped: boolean; paid: boolean; paid_amount?: number }
 export type Goal = { id: string; name: string; target: number; is_emergency: boolean }
@@ -12,6 +12,9 @@ export type GoalDeposit = { id: string; goal_id: string; ym: string; amount: num
 export type PocketKind = 'bank' | 'ewallet' | 'tunai' | 'lainnya'
 export type Pocket = { id: string; name: string; kind: PocketKind; opening_balance: number; sort: number }
 export type Transfer = { id: string; from_pocket: string; to_pocket: string; amount: number; fee?: number; moved_on: string; note: string }
+export type BillPayment = { id: string; bill_id: string; ym: string; amount: number; pocket_id: string | null; paid_on: string }
+export type PocketAdjustment = { id: string; pocket_id: string; amount: number; note: string; adjusted_on: string }
+export type Recurring = { id: string; note: string; amount: number; category_label: string; pocket_id: string | null; day: number; start_ym: string; end_ym: string | null; skipped_ym: string[] }
 export type PocketView = Pocket & { saldo: number }
 
 export type MonthData = {
@@ -21,4 +24,5 @@ export type MonthData = {
   expenses: Expense[]
   bills: Bill[]
   billMonths: BillMonth[]
+  payments: BillPayment[]
 }

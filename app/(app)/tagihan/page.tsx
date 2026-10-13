@@ -1,12 +1,15 @@
 import { TileTitle } from '@/components/TileTitle'
 import { CalendarClock, CreditCard, HandCoins, ListChecks, Plus, Receipt, Repeat } from 'lucide-react'
-import { getCtx, loadMonth } from '@/lib/data'
+import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { BillKindFields } from '@/components/BillKindFields'
-import { addBill, changeBillFrom, deleteBill, payBill, setBillMin, setBillPaidAmount, setBillAmountThisMonth, setBillPaid, setBillSkipped, stopBill } from '@/lib/actions'
+import { addBill, changeBillFrom, deleteBill, deleteBillPayment, payBill, setBillMin, setBillAmountThisMonth, setBillSkipped, stopBill, undoBillPaid } from '@/lib/actions'
+import { ModalForm } from '@/components/ModalForm'
+import { DatePicker } from '@/components/DatePicker'
+import { PocketSelect } from '@/components/PocketSelect'
 import { ConfirmButton } from '@/components/ConfirmButton'
 import { PageHead } from '@/components/PageHead'
-import { ActionButton, InlineField, MoneyInput, QuickForm, Submit, Toggle } from '@/components/Fields'
+import { ActionButton, InlineField, MoneyInput, QuickForm, Submit } from '@/components/Fields'
 
 export const metadata = { title: 'Tagihan' }
 
@@ -15,9 +18,11 @@ const KIND_ICON = { tagihan: Receipt, cicilan: Repeat, hutang: HandCoins, kartu:
 
 export default async function Tagihan() {
   const ctx = await getCtx()
-  const data = await loadMonth(ctx)
+  const [data, { pockets }] = await Promise.all([loadMonth(ctx), loadPockets(ctx)])
+  const pname = (id: string | null) => pockets.find((p) => p.id === id)?.name
   const rows = billRowsFor(data.bills, data.billMonths, ctx.ym)
   const s = summarize(data.income, data.budget, data.expenses, rows, ctx.today, ctx.ym)
+  const pays = data.payments
   const live = rows.filter((r) => !r.skipped)
   const paid = live.filter((r) => r.paid).reduce((t, r) => t + r.amount, 0)
 
@@ -91,7 +96,7 @@ export default async function Tagihan() {
                         {r.bill.note ? ` · ${r.bill.note}` : ''}
                       </p>
 
-                      {r.isCard && !r.skipped ? (
+                      {(r.isCard || (r.paidAmount > 0 && !r.paid)) && !r.skipped ? (
                         <div className="cc">
                           <div className="cc-bar" role="progressbar" aria-valuemin={0} aria-valuemax={r.amount} aria-valuenow={r.paidAmount}
                             aria-label={`Sudah dibayar ${rp(r.paidAmount)} dari ${rp(r.amount)}`}>
@@ -108,13 +113,6 @@ export default async function Tagihan() {
                               <span>{r.paid || r.minMet ? 'aman dari denda telat' : `kurang ${rp(r.minPayment - r.paidAmount)} lagi`}</span>
                             </p>
                           ) : null}
-                          {ctx.canEdit && !r.paid ? (
-                            <QuickForm action={payBill} className="cc-pay">
-                              <input type="hidden" name="bill_id" value={r.bill.id} /><input type="hidden" name="ym" value={ctx.ym} />
-                              <MoneyInput name="amount" label={`Nominal pembayaran ${r.bill.name}`} placeholder="Nominal bayar" />
-                              <Submit className="btn small">Catat bayar</Submit>
-                            </QuickForm>
-                          ) : null}
                         </div>
                       ) : null}
 
@@ -122,10 +120,20 @@ export default async function Tagihan() {
                         <details className="bill-more">
                           <summary className="link">Atur lainnya</summary>
                           <div className="bill-more-body stack">
+                            {pays.filter((p) => p.bill_id === r.bill.id).length ? (
+                              <div className="pay-list">
+                                <span className="hint">Riwayat bayar bulan ini</span>
+                                {pays.filter((p) => p.bill_id === r.bill.id).map((p) => (
+                                  <div key={p.id} className="pay-row">
+                                    <span className="grow">{Number(p.paid_on.slice(8))}/{p.paid_on.slice(5, 7)} · {pname(p.pocket_id) ?? 'tanpa sumber dana'}</span>
+                                    <b>{rp(p.amount)}</b>
+                                    <ActionButton action={deleteBillPayment} args={[p.id]} label={`Hapus pembayaran ${rp(p.amount)}`} />
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
                             {r.isCard ? (
                               <div className="cluster">
-                                <span className="hint">Sudah dibayar bulan ini</span>
-                                <span style={{ width: '9.5rem' }}><InlineField id={`${r.bill.id}|${ctx.ym}`} field="paid_amount" value={r.paidAmount} money action={setBillPaidAmount} label="Total sudah dibayar" /></span>
                                 <span className="hint">Minimum</span>
                                 <span style={{ width: '9.5rem' }}><InlineField id={r.bill.id} field="min_payment" value={r.bill.min_payment ?? 0} money action={setBillMin} label="Pembayaran minimum" /></span>
                               </div>
@@ -153,10 +161,18 @@ export default async function Tagihan() {
                         <InlineField id={`${r.bill.id}|${ctx.ym}`} field="amount" value={r.amount} money action={setBillAmountThisMonth}
                           label={`Nominal ${r.bill.name} bulan ini`} disabled={!ctx.canEdit || r.skipped} />
                       </span>
-                      {!r.isCard && !r.skipped ? (
-                        <label className="bill-check"><Toggle key={`${r.paid}`} checked={r.paid} label={`Tandai ${r.bill.name} sudah dibayar`} action={setBillPaid} args={[r.bill.id, ctx.ym]} disabled={!ctx.canEdit} /><span>Lunas</span></label>
-                      ) : r.isCard && !r.skipped && ctx.canEdit ? (
-                        <ActionButton action={setBillPaid} args={[r.bill.id, ctx.ym, !r.paid]} label={r.paid ? 'Batalkan lunas' : 'Lunasi penuh'} icon={false} text={r.paid ? 'Batalkan lunas' : 'Lunasi penuh'} className="btn small ghost" />
+                      {!r.skipped && ctx.canEdit ? (
+                        r.paid ? (
+                          <ActionButton action={undoBillPaid} args={[r.bill.id, ctx.ym]} label="Batalkan status lunas" icon={false} text="Batalkan lunas" className="btn small ghost" />
+                        ) : (
+                          <ModalForm triggerClass="btn small" trigger={r.paidAmount > 0 || r.isCard ? 'Catat bayar' : 'Bayar'} title={`Bayar ${r.bill.name}`} submitText="Simpan pembayaran" action={payBill}
+                            intro={<>Sisa bulan ini <b>{rp(r.amount - r.paidAmount)}</b>{r.minPayment > 0 && !r.minMet ? <>, minimum <b>{rp(r.minPayment - r.paidAmount)}</b> lagi</> : null}.</>}>
+                            <input type="hidden" name="bill_id" value={r.bill.id} /><input type="hidden" name="ym" value={ctx.ym} />
+                            <label className="field full"><span>Nominal dibayar</span><MoneyInput name="amount" label="Nominal dibayar" defaultValue={r.amount - r.paidAmount} required /></label>
+                            <PocketSelect pockets={pockets} label="Dibayar dari" />
+                            <label className="field"><span>Tanggal bayar</span><DatePicker name="paid_on" label="Tanggal bayar" defaultValue={ctx.today.iso} inModal /></label>
+                          </ModalForm>
+                        )
                       ) : null}
                     </div>
                   </li>

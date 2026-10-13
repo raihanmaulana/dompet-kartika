@@ -119,7 +119,7 @@ export function ExpenseList({ expenses, cats, pockets, canEdit, days }: {
             {list.map((e) => (
               <li key={e.id}>
                 <span className="grow"><span className="name">{e.note || label(e.budget_item_id) || 'Pengeluaran'}</span>
-                  {label(e.budget_item_id) || pk(e.pocket_id) || e.transfer_id ? <span className="meta">{[label(e.budget_item_id), pk(e.pocket_id), e.transfer_id ? 'Otomatis dari Pindah dana (hapus lewat halaman Sumber dana)' : ''].filter(Boolean).join(' · ')}</span> : null}</span>
+                  {label(e.budget_item_id) || pk(e.pocket_id) || e.transfer_id || e.recurring_id ? <span className="meta">{[label(e.budget_item_id), pk(e.pocket_id), e.recurring_id ? 'Berulang' : '', e.transfer_id ? 'Otomatis dari Pindah dana (hapus lewat halaman Sumber dana)' : ''].filter(Boolean).join(' · ')}</span> : null}</span>
                 <span className="amt">{rp(e.amount)}</span>
                 {canEdit && !e.transfer_id ? <ExpenseEditor expense={e} cats={cats} pockets={pockets} /> : null}
                 {canEdit && !e.transfer_id ? <ActionButton action={deleteExpense} args={[e.id]} label={`Hapus catatan ${e.note || rp(e.amount)}`} /> : null}

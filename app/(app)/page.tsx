@@ -1,6 +1,6 @@
 import { TileTitle } from '@/components/TileTitle'
 import Link from 'next/link'
-import { HeartPulse, PieChart, History, PenLine, Plus, Receipt, Waypoints } from 'lucide-react'
+import { BellRing, HeartPulse, PieChart, History, PenLine, Plus, Receipt, Waypoints } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
 import { addExpense } from '@/lib/actions'
@@ -49,6 +49,21 @@ export default async function Beranda() {
     s.rasio.simpan < 0.2 && 'tabungan + investasi di bawah 20%',
     s.rasio.cicilan > 0.3 && 'cicilan dan hutang di atas 30%',
   ].filter(Boolean) as string[]
+  // Peringatan yang perlu dilihat sekarang
+  const alerts: { tone: 'over' | 'warn'; text: string; href: string }[] = []
+  const nowMonth = ctx.ym === ctx.today.ym
+  if (nowMonth) {
+    for (const r of unpaid) {
+      if (r.skipped) continue
+      const gap = r.dueDay - ctx.today.day
+      const sisa = rp(r.amount - r.paidAmount)
+      if (gap < 0) alerts.push({ tone: 'over', text: `${r.bill.name} telat ${-gap} hari (sisa ${sisa})`, href: '/tagihan' })
+      else if (gap <= 3) alerts.push({ tone: 'warn', text: `${r.bill.name} jatuh tempo ${gap === 0 ? 'hari ini' : gap === 1 ? 'besok' : `${gap} hari lagi`} (sisa ${sisa})`, href: '/tagihan' })
+    }
+  }
+  for (const p of pockets) if (p.saldo < 0) alerts.push({ tone: 'over', text: `Saldo ${p.name} minus ${rp(-p.saldo)}`, href: '/sumber-dana' })
+  if (s.uangBelanja > 0 && s.sisaJatah < 0) alerts.push({ tone: 'over', text: `Jatah belanja sudah terlewat ${rp(-s.sisaJatah)}`, href: '/catatan' })
+  else if (s.uangBelanja > 0 && s.sisaJatah / s.uangBelanja < 0.15) alerts.push({ tone: 'warn', text: `Jatah belanja tinggal ${Math.round((s.sisaJatah / s.uangBelanja) * 100)}% (${rp(s.sisaJatah)})`, href: '/catatan' })
   const sliceMap = new Map<string, Slice>()
   for (const e of data.expenses) {
     const key = e.budget_item_id ?? '__none'
@@ -64,9 +79,19 @@ export default async function Beranda() {
     <>
       <PageHead ctx={ctx} title={title} sub={`Ringkasan ${ymLabel(ctx.ym)}`} />
       <div className="bento">
+        {alerts.length ? (
+          <section className="tile s12 alerts" style={{ ['--i' as string]: 0 }} aria-labelledby="h-alert">
+            <div className="tile-head"><TileTitle id="h-alert" icon={BellRing}>Perlu perhatian</TileTitle><span className="tile-note">{alerts.length} hal</span></div>
+            <ul className="alert-list">
+              {alerts.map((a, n) => (
+                <li key={n} className={`alert ${a.tone}`}><span className="alert-dot" aria-hidden /><Link href={a.href} className="grow">{a.text}</Link><span className="alert-go" aria-hidden>→</span></li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
         <section className="tile col blush s7" style={{ ['--i' as string]: 0 }} aria-labelledby="h-sisa">
           <p className="kicker" id="h-sisa">Sisa jatah {ymLabel(ctx.ym)}</p>
-          <p className={`big ${over ? 'neg' : ''}`}>{rp(s.sisaJatah)}</p>
+          <p className={`big ${over ? 'neg' : ''}`} style={{ fontSize: 'clamp(2.2rem, 5.4vw, 4rem)', whiteSpace: 'nowrap' }}>{rp(s.sisaJatah)}</p>
           <div className={`meter ${over ? 'over' : ''}`} style={{ marginTop: 'var(--space-5)' }} role="img" aria-label={`Terpakai ${Math.round(used)} persen dari uang belanja`}>
             <i style={{ width: `${used}%` }} />
           </div>

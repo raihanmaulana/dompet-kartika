@@ -28,7 +28,7 @@ Stack: Next.js 15 (App Router) · Supabase (Auth + Postgres + Row Level Security
 ## Cara kerja per bulan
 - Pilih bulan di kanan atas; seluruh halaman mengikuti bulan itu.
 - Bulan baru kosong → tombol **Salin dari bulan lalu** (anggaran dan pemasukan), lalu ubah sesukanya tanpa memengaruhi bulan lain.
-- Tagihan/hutang dibuat sekali dengan bulan mulai dan lama (atau terus-menerus). Jenis Kartu kredit punya pembayaran minimum dan progres sudah dibayar (jalankan `supabase/tambah-kartu-kredit.sql`). Per bulan bisa: ubah nominal bulan itu saja, ubah dari bulan itu seterusnya, lewati satu bulan, tandai lunas, atau hentikan.
+- Tagihan/hutang dibuat sekali dengan bulan mulai dan lama (atau terus-menerus). Bayar tagihan lewat tombol Bayar/Catat bayar (pilih dari sumber dana mana, boleh dicicil); saldo sumber dana ikut berkurang. Sumber dana punya tombol Samakan saldo (penyesuaian), dan Catatan punya Pengeluaran berulang. Jalankan `supabase/tambah-pembayaran-berulang.sql`. Jenis Kartu kredit punya pembayaran minimum dan progres sudah dibayar (jalankan `supabase/tambah-kartu-kredit.sql`). Per bulan bisa: ubah nominal bulan itu saja, ubah dari bulan itu seterusnya, lewati satu bulan, tandai lunas, atau hentikan.
 - Uang belanja = pemasukan bersih − tagihan/cicilan/hutang − tabungan − investasi. Sisa jatah = uang belanja − pengeluaran tercatat.
 
 ## Sumber dana (bank, e-wallet, tunai)

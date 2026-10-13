@@ -132,3 +132,24 @@ test('kartu kredit: progres bayar, minimum, dan sisa belum bayar', () => {
   r = billRowsFor([card], bm(1_000_000), '2026-10')[0]
   assert.equal(r.paid, true)
 })
+
+test('saldo sumber dana memperhitungkan pembayaran tagihan dan penyesuaian', async () => {
+  const { pocketBalances } = await import('./calc.ts')
+  const pockets = [{ id: 'a', name: 'BCA', kind: 'bank' as const, opening_balance: 1_000_000, sort: 0 }]
+  const today = { ym: '2026-10', iso: '2026-10-12' }
+  const r = pocketBalances(pockets, [], [], [], [], today,
+    [{ paid_on: '2026-10-05', amount: 300_000, pocket_id: 'a' }, { paid_on: '2026-10-20', amount: 999, pocket_id: 'a' }],
+    [{ adjusted_on: '2026-10-10', amount: -50_000, pocket_id: 'a' }])
+  assert.equal(r[0].saldo, 650_000) // 1.000.000 − 300.000 − 50.000 (pembayaran tanggal 20 belum dihitung)
+})
+
+test('tagihan biasa bisa dicicil: sisa dan status lunas', () => {
+  const bill = { id: 'w', name: 'Wifi', kind: 'tagihan' as const, amount: 150_000, due_day: 5, start_ym: '2026-10', end_ym: null, note: '' }
+  const bm = (paid_amount: number, paid = false) => [{ bill_id: 'w', ym: '2026-10', amount_override: null, skipped: false, paid, paid_amount }]
+  let r = billRowsFor([bill], bm(50_000), '2026-10')[0]
+  assert.equal(r.paid, false); assert.equal(r.paidAmount, 50_000)
+  r = billRowsFor([bill], bm(150_000), '2026-10')[0]
+  assert.equal(r.paid, true)
+  r = billRowsFor([bill], bm(0, true), '2026-10')[0]
+  assert.equal(r.paid, true); assert.equal(r.paidAmount, 150_000)
+})

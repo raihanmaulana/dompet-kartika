@@ -70,17 +70,20 @@ export function QuickForm({ action, children, className, resetOnDone = true }: {
   action: (fd: FormData) => Promise<string | void>; children: ReactNode; className?: string; resetOnDone?: boolean
 }) {
   const ref = useRef<HTMLFormElement>(null)
-  const [err, setErr] = useState('')
+  const [msg, setMsg] = useState('')
+  const warn = msg.startsWith('⚠')
   return (
     <form ref={ref} className={className} action={async (fd) => {
       let r: string | void
       try { r = await action(fd) } catch { r = 'Gagal menyimpan, coba lagi.' }
-      if (typeof r === 'string' && r) { setErr(r); return }
-      setErr('')
+      const m = typeof r === 'string' ? r : ''
+      setMsg(m)
+      // peringatan (⚠) berarti data tetap tersimpan, jadi formulir tetap dikosongkan
+      if (m && !m.startsWith('⚠')) return
       if (resetOnDone) ref.current?.reset()
     }}>
       {children}
-      {err ? <p className="hint" role="alert" style={{ color: 'var(--color-over)' }}>{err}</p> : null}
+      {msg ? <p className={warn ? 'form-msg warn' : 'form-msg err'} role={warn ? 'status' : 'alert'}>{msg}</p> : null}
     </form>
   )
 }
