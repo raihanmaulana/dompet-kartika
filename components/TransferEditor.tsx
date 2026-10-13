@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Pencil } from 'lucide-react'
 import { useBusyTransition } from './Busy'
+import { useToast } from './Toast'
 import { MoneyInput } from './Fields'
 import { DatePicker } from './DatePicker'
 import { updateTransfer } from '@/lib/actions'
@@ -12,6 +13,7 @@ import type { Pocket, Transfer } from '@/lib/types'
 export function TransferEditor({ transfer, pockets }: { transfer: Transfer; pockets: Pocket[] }) {
   const [open, setOpen] = useState(false)
   const [pending, start] = useBusyTransition()
+  const toast = useToast()
   const opener = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
 
@@ -32,7 +34,7 @@ export function TransferEditor({ transfer, pockets }: { transfer: Transfer; pock
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
-  const save = (fd: FormData) => start(async () => { await updateTransfer(fd); setOpen(false) })
+  const save = (fd: FormData) => start(async () => { await updateTransfer(fd); toast('Perubahan tersimpan'); setOpen(false) })
 
   return (
     <>

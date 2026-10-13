@@ -1,5 +1,6 @@
 import { TileTitle } from '@/components/TileTitle'
-import { ListChecks, Plus, Repeat, Target } from 'lucide-react'
+import Link from 'next/link'
+import { Download, FileText, ListChecks, Plus, Repeat, Target } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets, loadRecurring } from '@/lib/data'
 import { billRowsFor, daysInMonth, rp, summarize, ymLabel } from '@/lib/calc'
 import { addExpense, addRecurring, deleteRecurring, setRecurringField } from '@/lib/actions'
@@ -27,7 +28,7 @@ export default async function Catatan() {
 
   return (
     <>
-      <PageHead ctx={ctx} title="Catatan Pengeluaran" sub={`Pengeluaran ${ymLabel(ctx.ym)}: ${rp(s.spent)} · sisa jatah ${rp(s.sisaJatah)}`} />
+      <PageHead ctx={ctx} title="Catatan Pengeluaran" sub={`Pengeluaran ${ymLabel(ctx.ym)}: ${rp(s.spent)} · sisa jatah ${rp(s.sisaJatah)}`} actions={<span className="cluster"><a className="btn small ghost" href="/ekspor" download><Download aria-hidden size={16} /> CSV</a><Link className="btn small ghost" href="/laporan"><FileText aria-hidden size={16} /> Laporan PDF</Link></span>} />
       <div className="bento">
         <section className="tile s7" style={{ ['--i' as string]: 0 }} aria-labelledby="h-list">
           <div className="tile-head"><TileTitle id="h-list" icon={ListChecks}>Semua catatan</TileTitle><span className="tile-note">{data.expenses.length} catatan</span></div>

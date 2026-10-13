@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Trash2 } from 'lucide-react'
 import { useBusyTransition } from './Busy'
+import { useToast } from './Toast'
 
 /** Tombol dengan popup konfirmasi bertema sebelum menjalankan aksi yang tak bisa dibatalkan. */
 export function ConfirmButton({ action, args, title, message, trigger, confirmText = 'Ya, hapus', className = 'btn small ghost' }: {
@@ -10,6 +11,7 @@ export function ConfirmButton({ action, args, title, message, trigger, confirmTe
 }) {
   const [open, setOpen] = useState(false)
   const [pending, start] = useBusyTransition()
+  const toast = useToast()
   const opener = useRef<HTMLButtonElement>(null)
   const cancel = useRef<HTMLButtonElement>(null)
   const ok = useRef<HTMLButtonElement>(null)
@@ -39,7 +41,7 @@ export function ConfirmButton({ action, args, title, message, trigger, confirmTe
             <p id="cf-d">{message}</p>
             <div className="confirm-actions">
               <button type="button" ref={cancel} className="btn ghost" onClick={() => { setOpen(false); opener.current?.focus() }}>Batal</button>
-              <button type="button" ref={ok} className="btn danger" onClick={() => { setOpen(false); start(() => action(...args)) }}>{confirmText}</button>
+              <button type="button" ref={ok} className="btn danger" onClick={() => { setOpen(false); start(async () => { await action(...args); toast('Dihapus') }) }}>{confirmText}</button>
             </div>
           </div>
         </div>, document.body) : null}

@@ -1,5 +1,5 @@
 import { TileTitle } from '@/components/TileTitle'
-import { CalendarClock, CreditCard, HandCoins, ListChecks, Plus, Receipt, Repeat } from 'lucide-react'
+import { Download, CalendarClock, CreditCard, HandCoins, ListChecks, Plus, Receipt, Repeat } from 'lucide-react'
 import { getCtx, loadMonth, loadPockets } from '@/lib/data'
 import { billRowsFor, rp, summarize, ymLabel } from '@/lib/calc'
 import { BillKindFields } from '@/components/BillKindFields'
@@ -28,7 +28,7 @@ export default async function Tagihan() {
 
   return (
     <>
-      <PageHead ctx={ctx} title="Tagihan dan hutang" sub={`Daftar ${ymLabel(ctx.ym)}. Nominal dan status bayar berlaku per bulan.`} />
+      <PageHead ctx={ctx} title="Tagihan dan hutang" actions={<a className="btn small ghost" href="/ekspor?jenis=tagihan" download><Download aria-hidden size={16} /> CSV</a>} sub={`Daftar ${ymLabel(ctx.ym)}. Nominal dan status bayar berlaku per bulan.`} />
       <div className="bento">
         <section className="tile col blush s5" style={{ ['--i' as string]: 0 }} aria-labelledby="h-total">
           <p className="kicker" id="h-total">Total bulan ini</p>

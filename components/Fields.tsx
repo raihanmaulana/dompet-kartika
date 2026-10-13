@@ -1,4 +1,5 @@
 'use client'
+import { useToast } from './Toast'
 import { useBusyTransition, useBusyFlag } from './Busy'
 import { useRef, useState, type ReactNode } from 'react'
 import { Trash2 } from 'lucide-react'
@@ -32,10 +33,11 @@ export function InlineField({ id, field, value, action, money = false, disabled,
   const [v, setV] = useState(initial)
   const [saved, setSaved] = useState(initial)
   const [pending, start] = useBusyTransition()
+  const toast = useToast()
   const commit = () => {
     if (v === saved) return
     setSaved(v)
-    start(() => action(id, field, v))
+    start(async () => { await action(id, field, v); toast('Tersimpan') })
   }
   const input = (
     <input className={`input bare ${money ? 'money' : ''} ${extra ?? ''}`} aria-label={label} value={v} disabled={disabled}
@@ -51,9 +53,10 @@ export function ActionButton({ action, args, label, icon = true, text, className
   action: (...a: any[]) => Promise<void>; args: unknown[]; label: string; icon?: boolean; text?: string; className?: string
 }) {
   const [pending, start] = useBusyTransition()
+  const toast = useToast()
   return (
     <button type="button" className={className} aria-label={label} title={label} aria-busy={pending} disabled={pending}
-      onClick={() => start(() => action(...args))}>
+      onClick={() => start(async () => { await action(...args); toast(icon ? 'Dihapus' : 'Tersimpan') })}>
       {icon ? <Trash2 aria-hidden size={18} /> : null}{text}
     </button>
   )
@@ -66,10 +69,11 @@ export function Submit({ children, className = 'btn', pendingText = 'Menyimpan�
 }
 
 /** Form yang mengosongkan isiannya setelah tersimpan. */
-export function QuickForm({ action, children, className, resetOnDone = true }: {
-  action: (fd: FormData) => Promise<string | void>; children: ReactNode; className?: string; resetOnDone?: boolean
+export function QuickForm({ action, children, className, resetOnDone = true, toastText = 'Tersimpan' }: {
+  action: (fd: FormData) => Promise<string | void>; children: ReactNode; className?: string; resetOnDone?: boolean; toastText?: string
 }) {
   const ref = useRef<HTMLFormElement>(null)
+  const toast = useToast()
   const [msg, setMsg] = useState('')
   const warn = msg.startsWith('⚠')
   return (
@@ -78,6 +82,8 @@ export function QuickForm({ action, children, className, resetOnDone = true }: {
       try { r = await action(fd) } catch { r = 'Gagal menyimpan, coba lagi.' }
       const m = typeof r === 'string' ? r : ''
       setMsg(m)
+      if (!m) toast(toastText)
+      else if (m.startsWith('⚠')) toast(m, 'warn')
       // peringatan (⚠) berarti data tetap tersimpan, jadi formulir tetap dikosongkan
       if (m && !m.startsWith('⚠')) return
       if (resetOnDone) ref.current?.reset()

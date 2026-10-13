@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useBusyFlag } from './Busy'
+import { useToast } from './Toast'
 
 /** Tombol yang membuka popup berisi formulir. Pesan error tampil di dalam popup; peringatan (⚠) tampil setelah tersimpan. */
 export function ModalForm({ trigger, triggerClass = 'btn small', title, intro, submitText = 'Simpan', action, children }: {
@@ -15,6 +16,7 @@ export function ModalForm({ trigger, triggerClass = 'btn small', title, intro, s
   const opener = useRef<HTMLButtonElement>(null)
   const card = useRef<HTMLDivElement>(null)
   useBusyFlag(pending)
+  const toast = useToast()
   const close = () => { setOpen(false); setMsg(''); setSaved(false); opener.current?.focus() }
 
   useEffect(() => {
@@ -50,7 +52,8 @@ export function ModalForm({ trigger, triggerClass = 'btn small', title, intro, s
               setPending(false)
               const m = typeof r === 'string' ? r : ''
               if (m && !m.startsWith('⚠')) { setMsg(m); return }
-              if (m) { setMsg(m); setSaved(true); return } // tersimpan, tapi ada peringatan: biarkan terbaca dulu
+              if (m) { setMsg(m); setSaved(true); toast(m, 'warn'); return } // tersimpan, tapi ada peringatan: biarkan terbaca dulu
+              toast('Tersimpan')
               close()
             }}>
               {saved ? null : <div className="form-grid">{children}</div>}
